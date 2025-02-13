@@ -41,6 +41,7 @@
       margin-bottom: 15px;
       display: none;
       font-weight: bold;
+      font-size: 16px;
     }
     /* Черга */
     #queueList {
@@ -132,7 +133,6 @@
     .chat-message span {
       font-weight: 500;
     }
-    /* Попередження для чату */
     #chatWarning {
       display: none;
       color: #d32f2f;
@@ -152,7 +152,6 @@
     .minigame button {
       margin-top: 10px;
     }
-    /* Лічильник часу для міні-гри */
     #miniGameTimer {
       position: absolute;
       top: 10px;
@@ -174,6 +173,7 @@
     }
     #miniGameLeaderboardContainer h3 {
       margin-bottom: 10px;
+      font-size: 18px;
     }
     #miniGameLeaderboardTable {
       width: 100%;
@@ -187,6 +187,22 @@
     }
     #miniGameLeaderboardTable th {
       background: #f0f0f0;
+    }
+    /* Стилі для лідерів */
+    .leader-first {
+      font-size: 18px;
+      color: #FFD700; /* Gold */
+      font-weight: bold;
+    }
+    .leader-second {
+      font-size: 16px;
+      color: #C0C0C0; /* Silver */
+      font-weight: bold;
+    }
+    .leader-third {
+      font-size: 14px;
+      color: #CD7F32; /* Bronze */
+      font-weight: bold;
     }
     /* Ефект падаючої туалетної паперу */
     .falling-tp {
@@ -203,7 +219,7 @@
       0% { top: -100px; opacity: 1; }
       100% { top: 100vh; opacity: 0; }
     }
-    /* Структура сірника (анімована) */
+    /* Структура сірника */
     .match-container {
       margin-top: 10px;
       text-align: center;
@@ -294,7 +310,7 @@
     <!-- Ліва колонка -->
     <div class="main-content">
       <!-- Банер VIP (показується, якщо користувач VIP) -->
-      <div id="vipBanner">Вітаємо, VIP клієнт!</div>
+      <div id="vipBanner"></div>
       <h1>Електронна черга в туалет</h1>
       <p>Введіть своє ім'я, щоб увійти до черги</p>
       <!-- Аватари -->
@@ -316,7 +332,7 @@
       <!-- Міні-гра -->
       <div class="minigame" id="minigameArea" style="display: none; position: relative;">
         <h3>Міні-гра: Злови туалетний папір!</h3>
-        <p>Клікни на падаючий рулон:</p>
+        <p>Клікни на падаючий об’єкт:</p>
         <div id="gameArea" style="position: relative; height: 200px; border: 1px solid #ccc; background: #fff; border-radius: 8px; overflow: hidden;"></div>
         <p>Ваш рахунок: <span id="gameScore">0</span></p>
         <button id="startMiniGameBtn" onclick="startMiniGame()">Почати гру</button>
@@ -351,7 +367,7 @@
             </tr>
           </thead>
           <tbody id="miniGameLeaderboardBody">
-            <!-- Рядки будуть додаватись динамічно -->
+            <!-- Рядки додаються динамічно -->
           </tbody>
         </table>
       </div>
@@ -428,6 +444,13 @@
       tbody.innerHTML = "";
       entries.slice(0, 5).forEach(function(entry, index) {
         var tr = document.createElement("tr");
+        if (index === 0) {
+          tr.classList.add("leader-first");
+        } else if (index === 1) {
+          tr.classList.add("leader-second");
+        } else if (index === 2) {
+          tr.classList.add("leader-third");
+        }
         var tdRank = document.createElement("td");
         tdRank.innerText = index + 1;
         var tdName = document.createElement("td");
@@ -569,6 +592,7 @@
       var currentUser = localStorage.getItem("userName");
       if (currentUser && currentUser.toLowerCase() === "начальник") {
         vipBanner.style.display = "block";
+        vipBanner.innerText = "Вітаємо, VIP клієнте! Ви маєте пріоритетний доступ та особливі привілеї!";
       } else {
         vipBanner.style.display = "none";
       }
@@ -659,12 +683,13 @@
       if (!miniGameActive) return;
       var gameArea = document.getElementById("gameArea");
       var obj = document.createElement("img");
-      var isGood = Math.random() < 0.7;
-      if (isGood) {
+      // 70% шанс – туалетна папір (добрий), 30% шанс – какашка (поганий)
+      var random = Math.random();
+      if (random < 0.7) {
         obj.src = "https://img.icons8.com/color/48/000000/toilet-paper.png";
         obj.dataset.type = "good";
       } else {
-        obj.src = "https://img.icons8.com/fluency/48/000000/toilet-paper.png";
+        obj.src = "https://img.icons8.com/color/48/000000/poop.png";
         obj.dataset.type = "bad";
       }
       obj.style.position = "absolute";
@@ -770,6 +795,7 @@
         container.removeChild(tp);
       }, 2000);
     }
+
     /***** Чат Permissions *****/
     function updateChatPermission() {
       var currentUser = localStorage.getItem("userName");
@@ -792,16 +818,13 @@
       });
     }
 
-    /***** Лідери міні-гри (оновлення таблиці) *****/
-    // Використовуємо функцію updateMiniGameLeaderboardTable з попереднього блоку
-    // (див. функцію updateMiniGameLeaderboardTable вище)
-
     /***** VIP Банер *****/
     function updateVIPBanner() {
       var vipBanner = document.getElementById("vipBanner");
       var currentUser = localStorage.getItem("userName");
       if (currentUser && currentUser.toLowerCase() === "начальник") {
         vipBanner.style.display = "block";
+        vipBanner.innerText = "Вітаємо, VIP клієнте! Ви маєте пріоритетний доступ та особливі привілеї!";
       } else {
         vipBanner.style.display = "none";
       }
@@ -844,6 +867,7 @@
       chatRef.push(message);
       chatInput.value = "";
     }
+
     /***** Міні-гра (автоматичний показ) *****/
     setInterval(function() {
       if (currentQueue.length > 0 && currentQueue[0].name === localStorage.getItem("userName")) {
@@ -853,6 +877,97 @@
         }
       }
     }, 5000);
+
+    /***** Міні-гра: Новий варіант з туалетною папером та какашкою *****/
+    function startMiniGame() {
+      document.getElementById("startMiniGameBtn").style.display = "none";
+      miniGameScore = 0;
+      document.getElementById("gameScore").innerText = miniGameScore;
+      var gameArea = document.getElementById("gameArea");
+      gameArea.innerHTML = "";
+      // Додаємо лічильник часу
+      var timerDisplay = document.createElement("div");
+      timerDisplay.id = "miniGameTimer";
+      timerDisplay.innerText = miniGameDuration + "s";
+      gameArea.appendChild(timerDisplay);
+      miniGameActive = true;
+      miniGameTimeLeft = miniGameDuration;
+      miniGameTimer = setInterval(function() {
+        miniGameTimeLeft--;
+        timerDisplay.innerText = miniGameTimeLeft + "s";
+        if (miniGameTimeLeft <= 0) {
+          endMiniGame();
+        }
+      }, 1000);
+      miniGameInterval = setInterval(spawnFallingObject, 1500);
+    }
+    function spawnFallingObject() {
+      if (!miniGameActive) return;
+      var gameArea = document.getElementById("gameArea");
+      var obj = document.createElement("img");
+      // 70% шанс – туалетна папір (добрий), 30% – какашка (поганий)
+      var random = Math.random();
+      if (random < 0.7) {
+        obj.src = "https://img.icons8.com/color/48/000000/toilet-paper.png";
+        obj.dataset.type = "good";
+      } else {
+        obj.src = "https://img.icons8.com/color/48/000000/poop.png";
+        obj.dataset.type = "bad";
+      }
+      obj.style.position = "absolute";
+      obj.style.width = "40px";
+      var maxLeft = gameArea.offsetWidth - 40;
+      obj.style.left = Math.random() * maxLeft + "px";
+      obj.style.top = "-50px";
+      obj.style.cursor = "pointer";
+      obj.className = "falling-object";
+      obj.onclick = function() {
+        if (!miniGameActive) return;
+        if (this.dataset.type === "good") {
+          miniGameScore++;
+        } else {
+          miniGameScore--;
+        }
+        document.getElementById("gameScore").innerText = miniGameScore;
+        gameArea.removeChild(this);
+      };
+      gameArea.appendChild(obj);
+      obj.style.animation = "fall 3s linear forwards";
+      obj.addEventListener("animationend", function() {
+        if (gameArea.contains(obj)) {
+          gameArea.removeChild(obj);
+        }
+      });
+    }
+    function endMiniGame() {
+      miniGameActive = false;
+      clearInterval(miniGameTimer);
+      clearInterval(miniGameInterval);
+      var gameArea = document.getElementById("gameArea");
+      gameArea.innerHTML = "";
+      var overlay = document.createElement("div");
+      overlay.id = "miniGameOverlay";
+      overlay.innerHTML = "<p>Час вичерпано!</p><p>Ваш рахунок: " + miniGameScore + "</p>";
+      var restartBtn = document.createElement("button");
+      restartBtn.innerText = "Почати знову";
+      restartBtn.onclick = function() {
+        overlay.remove();
+        document.getElementById("startMiniGameBtn").style.display = "inline-block";
+      };
+      overlay.appendChild(restartBtn);
+      gameArea.appendChild(overlay);
+      updateMiniGameLeaderboard();
+    }
+    function updateMiniGameLeaderboard() {
+      var userName = localStorage.getItem("userName");
+      if (!userName) return;
+      miniGameLeaderboardRef.child(userName).once("value", function(snapshot) {
+        var prev = snapshot.val();
+        if (!prev || miniGameScore > prev.score) {
+          miniGameLeaderboardRef.child(userName).set({ score: miniGameScore });
+        }
+      });
+    }
   </script>
 </body>
 </html>
