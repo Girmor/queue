@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Електронна черга в туалет</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f0f0;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      max-width: 600px;
+      margin: auto;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      text-align: center;
+    }
+    p {
+      text-align: center;
+      color: #555;
+    }
+    .input-group {
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    input[type="text"] {
+      width: calc(100% - 120px);
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      margin-right: 10px;
+    }
+    button {
+      padding: 10px 20px;
+      border: none;
+      background: #007BFF;
+      color: white;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    .btn-secondary {
+      background: #6c757d;
+    }
+    .btn-secondary:hover {
+      background: #5a6268;
+    }
+    #queueList {
+      list-style: none;
+      padding: 0;
+    }
+    #queueList li {
+      padding: 10px;
+      border-bottom: 1px solid #ccc;
+    }
+    #queueList li.current {
+      background: #dff0d8;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Електронна черга в туалет</h1>
+    <p>Вічно зайнято? Залиш свою заявку у черзі!</p>
+    
+    <div class="input-group">
+      <input type="text" id="nameInput" placeholder="Введіть ваше ім'я">
+      <button onclick="joinQueue()">Встати в чергу</button>
+    </div>
+    
+    <ul id="queueList">
+      <!-- Тут будуть відображатись учасники черги -->
+    </ul>
+    
+    <div style="text-align: center; margin-top: 20px;">
+      <button onclick="advanceQueue()" class="btn-secondary">Туалет звільнився!</button>
+    </div>
+  </div>
+
+  <script>
+    // Масив для збереження учасників черги
+    let queue = [];
+
+    // Функція для відображення черги
+    function renderQueue() {
+      const queueList = document.getElementById('queueList');
+      queueList.innerHTML = '';
+
+      if (queue.length === 0) {
+        queueList.innerHTML = '<li>Черга порожня. Туалет вільний!</li>';
+      } else {
+        queue.forEach((person, index) => {
+          const li = document.createElement('li');
+          // Перший у черзі – це той, хто зараз у туалеті
+          li.textContent = (index === 0 ? 'Зараз у туалеті: ' : (index + 1) + '. ') + person;
+          if (index === 0) li.classList.add('current');
+          queueList.appendChild(li);
+        });
+      }
+    }
+
+    // Функція для приєднання до черги
+    function joinQueue() {
+      const nameInput = document.getElementById('nameInput');
+      const name = nameInput.value.trim();
+      if (!name) {
+        alert("Будь ласка, введіть ваше ім'я!");
+        return;
+      }
+      queue.push(name);
+      nameInput.value = '';
+      renderQueue();
+    }
+
+    // Функція для просування черги (симулюємо, що туалет звільнився)
+    function advanceQueue() {
+      if (queue.length === 0) {
+        alert("Немає людей у черзі!");
+        return;
+      }
+      queue.shift();
+      renderQueue();
+    }
+
+    // Початкове відображення
+    renderQueue();
+  </script>
+</body>
+</html>
