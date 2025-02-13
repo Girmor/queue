@@ -28,14 +28,12 @@
       text-align: center;
       position: relative;
       overflow: hidden;
+      animation: slideDown 0.8s ease-out;
     }
     /* Анімація для контейнера (легке підсковзування зверху) */
     @keyframes slideDown {
       from { transform: translateY(-50px); opacity: 0; }
       to { transform: translateY(0); opacity: 1; }
-    }
-    .container {
-      animation: slideDown 0.8s ease-out;
     }
     /* Заголовок і картинка */
     .header-img {
@@ -130,8 +128,8 @@
 </head>
 <body>
   <div class="container">
-    <!-- Тема: туалетна іконка -->
-   <img src="https://img.icons8.com/ios-filled/100/toilet.png" alt="Toilet Icon" class="header-img" />
+    <!-- Нова іконка з Icons8 -->
+    <img src="https://img.icons8.com/ios-filled/100/toilet.png" alt="Toilet Icon" class="header-img" />
     <h1>Електронна черга в туалет</h1>
     <p>Введіть своє ім'я, щоб увійти до черги</p>
     
