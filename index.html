@@ -8,10 +8,13 @@
     /* Загальні стилі */
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      margin: 0; padding: 0;
+      margin: 0;
+      padding: 0;
       background: url('https://www.transparenttextures.com/patterns/diagmonds-light.png');
       background-color: #f8f9fa;
-      display: flex; align-items: center; justify-content: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       min-height: 100vh;
     }
     .container {
@@ -23,7 +26,8 @@
       border-radius: 10px;
       box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
       text-align: center;
-      position: relative; overflow: hidden;
+      position: relative;
+      overflow: hidden;
       animation: slideDown 0.8s ease-out;
     }
     @keyframes slideDown {
@@ -31,7 +35,8 @@
       to { transform: translateY(0); opacity: 1; }
     }
     .header-img {
-      width: 80px; height: auto;
+      width: 80px;
+      height: auto;
       margin-bottom: 10px;
       animation: bounce 2s infinite;
     }
@@ -40,45 +45,96 @@
       40% { transform: translateY(-15px); }
       60% { transform: translateY(-8px); }
     }
-    h1 { margin: 0; color: #343a40; }
-    p { color: #6c757d; margin-bottom: 20px; }
+    h1 {
+      margin: 0;
+      color: #343a40;
+    }
+    p {
+      color: #6c757d;
+      margin-bottom: 20px;
+    }
     .input-group {
-      display: flex; justify-content: center; margin-bottom: 20px;
+      display: flex;
+      justify-content: center;
+      margin-bottom: 20px;
     }
     input[type="text"] {
-      width: 60%; padding: 10px;
+      width: 60%;
+      padding: 10px;
       border: 2px solid #ced4da;
       border-radius: 4px;
       font-size: 16px;
       transition: border-color 0.3s;
     }
     input[type="text"]:focus {
-      outline: none; border-color: #80bdff;
+      outline: none;
+      border-color: #80bdff;
     }
     button {
-      padding: 10px 20px; margin-left: 10px;
-      border: none; border-radius: 4px;
-      font-size: 16px; cursor: pointer;
+      padding: 10px 20px;
+      margin-left: 10px;
+      border: none;
+      border-radius: 4px;
+      font-size: 16px;
+      cursor: pointer;
       transition: background 0.3s, transform 0.2s;
     }
-    button:hover { transform: scale(1.05); }
-    .primary-btn { background: #007bff; color: #fff; }
-    .primary-btn:hover { background: #0056b3; }
-    .btn-secondary { background: #6c757d; color: #fff; }
-    .btn-secondary:hover { background: #5a6268; }
+    button:hover {
+      transform: scale(1.05);
+    }
+    .primary-btn {
+      background: #007bff;
+      color: #fff;
+    }
+    .primary-btn:hover {
+      background: #0056b3;
+    }
+    .btn-secondary {
+      background: #6c757d;
+      color: #fff;
+    }
+    .btn-secondary:hover {
+      background: #5a6268;
+    }
     #queueList {
-      list-style: none; padding: 0; margin: 0;
+      list-style: none;
+      padding: 0;
+      margin: 0;
     }
     #queueList li {
-      padding: 12px 15px; border-bottom: 1px solid #dee2e6;
-      text-align: left; opacity: 0;
+      padding: 12px 15px;
+      border-bottom: 1px solid #dee2e6;
+      text-align: left;
+      opacity: 0;
       animation: fadeIn 0.5s forwards;
     }
     #queueList li.current {
-      background: #d4edda; font-weight: bold;
+      background: #d4edda;
+      font-weight: bold;
     }
-    @keyframes fadeIn { to { opacity: 1; } }
-    button:active { transform: scale(0.95); }
+    @keyframes fadeIn {
+      to { opacity: 1; }
+    }
+    button:active {
+      transform: scale(0.95);
+    }
+    /* Стилі для "сірника" (прогрес-бар) */
+    #progressContainer {
+      width: 100%;
+      height: 20px;
+      background: #ddd;
+      border-radius: 10px;
+      overflow: hidden;
+      margin-top: 20px;
+      display: none; /* спочатку приховано */
+    }
+    #progressBar {
+      height: 100%;
+      width: 100%;
+      background: linear-gradient(90deg, #ff9800, #f44336);
+      border-radius: 10px 0 0 10px;
+      transition: width 1s linear;
+    }
   </style>
 </head>
 <body>
@@ -93,6 +149,11 @@
     </div>
     
     <ul id="queueList"></ul>
+    
+    <!-- Прогрес-бар "сірника" -->
+    <div id="progressContainer">
+      <div id="progressBar"></div>
+    </div>
     
     <div style="margin-top: 20px;">
       <button class="btn-secondary" onclick="advanceQueue()">Туалет звільнився!</button>
@@ -123,33 +184,86 @@
 
     // Ініціалізація Firebase
     firebase.initializeApp(firebaseConfig);
-
     var db = firebase.database();
     var queueRef = db.ref("queue");
 
-    // Змінна для збереження попереднього першого користувача
+    // Час перебування у туалеті (20 хвилин)
+    const allowedTime = 20 * 60 * 1000;
+    // Для тестування можна використовувати, наприклад, 30 секунд:
+//  const allowedTime = 30 * 1000;
+
     let lastOccupant = null;
+    let progressInterval = null;
+    let currentQueue = [];
+
+    // Оновлення прогрес-бару ("сірника")
+    function updateProgressBar() {
+      if (currentQueue.length === 0 || !currentQueue[0].startedAt) return;
+      const elapsed = Date.now() - currentQueue[0].startedAt;
+      let percentage = Math.max(0, 100 - (elapsed / allowedTime) * 100);
+      document.getElementById("progressBar").style.width = percentage + "%";
+      // Якщо час вичерпано, зупиняємо інтервал
+      if (percentage <= 0) {
+        clearInterval(progressInterval);
+        progressInterval = null;
+      }
+    }
 
     // Слухаємо зміни в базі даних у реальному часі
     queueRef.on("value", function(snapshot) {
       var queue = snapshot.val() || [];
+      currentQueue = queue; // оновлюємо глобальну змінну
 
-      // Визначаємо поточного першого користувача (occupant)
+      // Якщо черга не порожня, працюємо з першим користувачем
+      if (queue.length > 0) {
+        // Якщо у першого користувача немає часу старту, встановлюємо його
+        if (!queue[0].startedAt) {
+          queue[0].startedAt = Date.now();
+          queueRef.set(queue);
+          return; 
+        } else {
+          // Перевірка часу перебування
+          var elapsed = Date.now() - queue[0].startedAt;
+          if (elapsed >= allowedTime) {
+            // Видаляємо першого користувача автоматично
+            queue.shift();
+            // Оповіщення про перевищення часу
+            if (Notification.permission === "granted") {
+              new Notification("Туалет звільнився!", {
+                body: "Ну це капець... так довго не можна сидіти, виходимо!"
+              });
+            } else {
+              alert("Ну це капець... так довго не можна сидіти, виходимо!");
+            }
+            queueRef.set(queue);
+            return;
+          }
+        }
+        // Показуємо прогрес-бар і запускаємо інтервал оновлення, якщо його ще немає
+        document.getElementById("progressContainer").style.display = "block";
+        if (!progressInterval) {
+          progressInterval = setInterval(updateProgressBar, 1000);
+        }
+      } else {
+        // Якщо черга порожня, ховаємо прогрес-бар та очищуємо інтервал
+        document.getElementById("progressContainer").style.display = "none";
+        if (progressInterval) {
+          clearInterval(progressInterval);
+          progressInterval = null;
+        }
+      }
+
+      // Оповіщення про звільнення туалету (ручне звільнення)
       var occupant = (queue.length > 0) ? queue[0].name : null;
-
-      // Якщо попередній occupant існував, а тепер черга порожня або перший змінився
       if (lastOccupant && occupant === null) {
-        // Спробуємо показати браузерне повідомлення
         if (Notification.permission === "granted") {
           new Notification("Туалет звільнився!", {
             body: "Ну це капець... так довго не можна сидіти, виходимо!"
           });
         } else {
-          // Якщо дозволу немає, використовуємо alert
           alert("Туалет звільнився!");
         }
       }
-
       lastOccupant = occupant;
       renderQueue(queue);
     });
@@ -187,7 +301,6 @@
         alert("Будь ласка, введіть ваше ім'я!");
         return;
       }
-      // Додаємо об'єкт { name, startedAt: null }
       queueRef.once("value").then(function(snapshot) {
         const currentQueue = snapshot.val() || [];
         currentQueue.push({ name: name, startedAt: null });
@@ -196,7 +309,7 @@
       nameInput.value = "";
     }
 
-    // Видаляємо першого користувача (ручне звільнення)
+    // Ручне звільнення першого користувача
     function advanceQueue() {
       queueRef.once("value").then(function(snapshot) {
         const currentQueue = snapshot.val() || [];
