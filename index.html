@@ -346,7 +346,6 @@
         <div id="chatPanel"></div>
         <div style="margin-top: 10px;">
           <input type="text" id="chatInput" placeholder="Тільки учасники черги можуть писати" disabled>
-          <!-- Видалено inline onclick, відправлення через Enter -->
           <button id="sendChatBtn">Надіслати</button>
           <div id="chatWarning" style="display:none;">Ви не записані у чергу!</div>
         </div>
@@ -606,6 +605,7 @@
         sendChat();
       }
     });
+    document.getElementById("sendChatBtn").addEventListener("click", sendChat);
     chatRef.on("child_added", function(snapshot) {
       var message = snapshot.val();
       displayChatMessage(message);
@@ -657,7 +657,17 @@
       }
     }
 
-    /***** Міні-гра (удосконалена) *****/
+    /***** Міні-гра (автоматичний показ) *****/
+    setInterval(function() {
+      if (currentQueue.length > 0 && currentQueue[0].name === localStorage.getItem("userName")) {
+        var elapsed = Date.now() - currentQueue[0].startedAt;
+        if (elapsed > 60 * 1000) {
+          document.getElementById("minigameArea").style.display = "block";
+        }
+      }
+    }, 5000);
+
+    /***** Міні-гра: Новий варіант з туалетною папером та какашкою *****/
     function startMiniGame() {
       document.getElementById("startMiniGameBtn").style.display = "none";
       miniGameScore = 0;
@@ -690,7 +700,8 @@
         obj.src = "https://img.icons8.com/color/48/000000/toilet-paper.png";
         obj.dataset.type = "good";
       } else {
-        obj.src = "https://img.icons8.com/color/48/000000/poop.png";
+        // Використовуємо інший URL для іконки "какашки"
+        obj.src = "https://img.icons8.com/emoji/48/000000/poop.png";
         obj.dataset.type = "bad";
       }
       obj.style.position = "absolute";
@@ -796,89 +807,6 @@
         container.removeChild(tp);
       }, 2000);
     }
-
-    /***** Чат Permissions *****/
-    function updateChatPermission() {
-      var currentUser = localStorage.getItem("userName");
-      var chatInput = document.getElementById("chatInput");
-      var chatWarning = document.getElementById("chatWarning");
-      if (currentUser && isUserInQueue(currentUser)) {
-        chatInput.disabled = false;
-        chatInput.placeholder = "Ваше повідомлення";
-        chatWarning.style.display = "none";
-      } else {
-        chatInput.disabled = true;
-        chatInput.placeholder = "Тільки учасники черги можуть писати";
-        chatWarning.style.display = "block";
-        chatWarning.innerText = "Ви не записані у чергу!";
-      }
-    }
-    function isUserInQueue(userName) {
-      return currentQueue.some(function(person) {
-        return person.name === userName;
-      });
-    }
-
-    /***** VIP Банер *****/
-    function updateVIPBanner() {
-      var vipBanner = document.getElementById("vipBanner");
-      var currentUser = localStorage.getItem("userName");
-      if (currentUser && currentUser.toLowerCase() === "начальник") {
-        vipBanner.style.display = "block";
-        vipBanner.innerText = "Вітаємо, VIP клієнте! Ви маєте пріоритетний доступ та особливі привілеї!";
-      } else {
-        vipBanner.style.display = "none";
-      }
-    }
-
-    /***** Чат *****/
-    document.getElementById("chatInput").addEventListener("keydown", function(e) {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        sendChat();
-      }
-    });
-    chatRef.on("child_added", function(snapshot) {
-      var message = snapshot.val();
-      displayChatMessage(message);
-    });
-    function displayChatMessage(message) {
-      var chatPanel = document.getElementById("chatPanel");
-      var div = document.createElement("div");
-      div.className = "chat-message";
-      div.innerHTML = "<span>" + message.name + ":</span> " + message.text;
-      chatPanel.appendChild(div);
-      chatPanel.scrollTop = chatPanel.scrollHeight;
-    }
-    function sendChat() {
-      var chatInput = document.getElementById("chatInput");
-      var text = chatInput.value.trim();
-      var currentUser = localStorage.getItem("userName");
-      if (!currentUser || !isUserInQueue(currentUser)) {
-        alert("Для написання повідомлень потрібно бути записаним у чергу!");
-        return;
-      }
-      if (!text) return;
-      var message = {
-        name: currentUser,
-        text: text,
-        avatar: selectedAvatar,
-        timestamp: Date.now()
-      };
-      chatRef.push(message);
-      chatInput.value = "";
-    }
-
-    /***** Міні-гра (автоматичний показ) *****/
-    setInterval(function() {
-      if (currentQueue.length > 0 && currentQueue[0].name === localStorage.getItem("userName")) {
-        var elapsed = Date.now() - currentQueue[0].startedAt;
-        if (elapsed > 60 * 1000) {
-          document.getElementById("minigameArea").style.display = "block";
-        }
-      }
-    }, 5000);
-
   </script>
 </body>
 </html>
