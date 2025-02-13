@@ -5,135 +5,229 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Електронна черга в туалет</title>
   <style>
+    /* Загальні стилі */
     body {
-      font-family: Arial, sans-serif;
-      background: #f0f0f0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       margin: 0;
-      padding: 20px;
+      padding: 0;
+      background: url('https://www.transparenttextures.com/patterns/diagmonds-light.png');
+      background-color: #f8f9fa;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
     }
     .container {
+      background: #fff;
       max-width: 600px;
-      margin: auto;
-      background: white;
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      width: 90%;
+      padding: 30px 20px;
+      margin: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    /* Анімація для контейнера (легке підсковзування зверху) */
+    @keyframes slideDown {
+      from { transform: translateY(-50px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    .container {
+      animation: slideDown 0.8s ease-out;
+    }
+    /* Заголовок і картинка */
+    .header-img {
+      width: 80px;
+      height: auto;
+      margin-bottom: 10px;
+      animation: bounce 2s infinite;
+    }
+    @keyframes bounce {
+      0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+      40% { transform: translateY(-15px); }
+      60% { transform: translateY(-8px); }
     }
     h1 {
-      text-align: center;
+      margin: 0;
+      color: #343a40;
     }
     p {
-      text-align: center;
-      color: #555;
-    }
-    .input-group {
+      color: #6c757d;
       margin-bottom: 20px;
-      text-align: center;
+    }
+    /* Інпут та кнопки */
+    .input-group {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 20px;
     }
     input[type="text"] {
-      width: calc(100% - 120px);
+      width: 60%;
       padding: 10px;
-      border: 1px solid #ccc;
+      border: 2px solid #ced4da;
       border-radius: 4px;
-      margin-right: 10px;
+      font-size: 16px;
+      transition: border-color 0.3s;
+    }
+    input[type="text"]:focus {
+      outline: none;
+      border-color: #80bdff;
     }
     button {
       padding: 10px 20px;
+      margin-left: 10px;
       border: none;
-      background: #007BFF;
-      color: white;
       border-radius: 4px;
+      font-size: 16px;
       cursor: pointer;
+      transition: background 0.3s, transform 0.2s;
     }
     button:hover {
+      transform: scale(1.05);
+    }
+    .primary-btn {
+      background: #007bff;
+      color: #fff;
+    }
+    .primary-btn:hover {
       background: #0056b3;
     }
     .btn-secondary {
       background: #6c757d;
+      color: #fff;
     }
     .btn-secondary:hover {
       background: #5a6268;
     }
+    /* Стилізація списку черги */
     #queueList {
       list-style: none;
       padding: 0;
+      margin: 0;
     }
     #queueList li {
-      padding: 10px;
-      border-bottom: 1px solid #ccc;
+      padding: 12px 15px;
+      border-bottom: 1px solid #dee2e6;
+      text-align: left;
+      opacity: 0;
+      animation: fadeIn 0.5s forwards;
     }
     #queueList li.current {
-      background: #dff0d8;
+      background: #d4edda;
       font-weight: bold;
+    }
+    /* Анімація для елементів списку */
+    @keyframes fadeIn {
+      to { opacity: 1; }
+    }
+    /* Додаткова анімація для кнопок (легке підсвічування при кліку) */
+    button:active {
+      transform: scale(0.95);
     }
   </style>
 </head>
 <body>
   <div class="container">
+    <!-- Тема: туалетна іконка -->
+    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/15/Toilet_icon.svg/512px-Toilet_icon.svg.png" alt="Toilet Icon" class="header-img" />
     <h1>Електронна черга в туалет</h1>
-    <p>Вічно зайнято? Залиш свою заявку у черзі!</p>
+    <p>Введіть своє ім'я, щоб увійти до черги</p>
     
     <div class="input-group">
-      <input type="text" id="nameInput" placeholder="Введіть ваше ім'я">
-      <button onclick="joinQueue()">Встати в чергу</button>
+      <input type="text" id="nameInput" placeholder="Ваше ім'я">
+      <button class="primary-btn" onclick="joinQueue()">Встати в чергу</button>
     </div>
     
     <ul id="queueList">
-      <!-- Тут будуть відображатись учасники черги -->
+      <!-- Список учасників черги -->
     </ul>
     
-    <div style="text-align: center; margin-top: 20px;">
-      <button onclick="advanceQueue()" class="btn-secondary">Туалет звільнився!</button>
+    <div style="margin-top: 20px;">
+      <button class="btn-secondary" onclick="advanceQueue()">Туалет звільнився!</button>
     </div>
   </div>
 
+  <!-- Підключення Firebase (версія compat для спрощення використання) -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
   <script>
-    // Масив для збереження учасників черги
-    let queue = [];
+    // TODO: Замініть наступні значення на свої конфігураційні дані з Firebase
+    var firebaseConfig = {
+      apiKey: "AIzaSyBgpL3-TVnAzVvGP4AGcPmzYOjTvU9G3P4",
+      authDomain: "toiletqueue-be126.firebaseapp.com",
+      databaseURL: "https://toiletqueue-be126-default-rtdb.europe-west1.firebasedatabase.app/",
+      projectId: "toiletqueue-be126",
+      storageBucket: "toiletqueue-be126.firebasestorage.app",
+      messagingSenderId: "391582777538",
+      appId: "1:391582777538:web:da61462bf4a65954f6fb5b"
+    };
+
+    // Ініціалізація Firebase
+    firebase.initializeApp(firebaseConfig);
+
+    // Отримуємо посилання на Realtime Database і вузол "queue"
+    var db = firebase.database();
+    var queueRef = db.ref("queue");
+
+    // Відслідковуємо зміни в базі даних
+    queueRef.on("value", function(snapshot) {
+      var queue = snapshot.val() || [];
+      renderQueue(queue);
+    });
 
     // Функція для відображення черги
-    function renderQueue() {
-      const queueList = document.getElementById('queueList');
-      queueList.innerHTML = '';
-
+    function renderQueue(queue) {
+      const queueList = document.getElementById("queueList");
+      queueList.innerHTML = "";
       if (queue.length === 0) {
-        queueList.innerHTML = '<li>Черга порожня. Туалет вільний!</li>';
+        const li = document.createElement("li");
+        li.textContent = "Черга порожня. Туалет вільний!";
+        li.style.textAlign = "center";
+        li.style.opacity = "1";
+        queueList.appendChild(li);
       } else {
         queue.forEach((person, index) => {
-          const li = document.createElement('li');
-          // Перший у черзі – це той, хто зараз у туалеті
-          li.textContent = (index === 0 ? 'Зараз у туалеті: ' : (index + 1) + '. ') + person;
-          if (index === 0) li.classList.add('current');
+          const li = document.createElement("li");
+          li.style.animationDelay = (index * 0.1) + "s"; // невелика затримка для ефекту по черзі
+          li.textContent = (index === 0 ? "Зараз у туалеті: " : (index + 1) + ". ") + person;
+          if (index === 0) li.classList.add("current");
           queueList.appendChild(li);
         });
       }
     }
 
-    // Функція для приєднання до черги
+    // Функція для додавання користувача в чергу
     function joinQueue() {
-      const nameInput = document.getElementById('nameInput');
+      const nameInput = document.getElementById("nameInput");
       const name = nameInput.value.trim();
       if (!name) {
         alert("Будь ласка, введіть ваше ім'я!");
         return;
       }
-      queue.push(name);
-      nameInput.value = '';
-      renderQueue();
+      // Зчитуємо поточну чергу, додаємо ім'я і оновлюємо базу даних
+      queueRef.once("value").then(function(snapshot) {
+        const currentQueue = snapshot.val() || [];
+        currentQueue.push(name);
+        queueRef.set(currentQueue);
+      });
+      nameInput.value = "";
     }
 
-    // Функція для просування черги (симулюємо, що туалет звільнився)
+    // Функція для просування черги (видалення першого елемента)
     function advanceQueue() {
-      if (queue.length === 0) {
-        alert("Немає людей у черзі!");
-        return;
-      }
-      queue.shift();
-      renderQueue();
+      queueRef.once("value").then(function(snapshot) {
+        const currentQueue = snapshot.val() || [];
+        if (currentQueue.length === 0) {
+          alert("Немає людей у черзі!");
+          return;
+        }
+        // Видаляємо першого користувача (той, хто зараз у туалеті)
+        currentQueue.shift();
+        queueRef.set(currentQueue);
+      });
     }
-
-    // Початкове відображення
-    renderQueue();
   </script>
 </body>
 </html>
