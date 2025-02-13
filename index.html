@@ -4,41 +4,43 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Toilet Queue Fun</title>
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css?family=Roboto:400,500,700&display=swap" rel="stylesheet">
   <style>
-    /* Основний лейаут */
+    /* Основний лейаут та сучасний дизайн */
     body {
-      font-family: Arial, sans-serif;
+      font-family: 'Roboto', sans-serif;
       margin: 0;
       padding: 0;
-      background: #f0f0f0;
+      background: linear-gradient(135deg, #f5f7fa, #c3cfe2);
     }
     .container {
       max-width: 1200px;
-      margin: auto;
+      margin: 30px auto;
       display: grid;
       grid-template-columns: 1fr 300px;
       grid-gap: 20px;
       padding: 20px;
     }
-    /* Ліва колонка: основний контент */
-    .main-content {
+    .main-content, .sidebar {
       background: #fff;
       padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    }
-    /* Права колонка: чат і статистика */
-    .sidebar {
-      background: #fff;
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     }
     h1, h3, p {
       margin: 0 0 10px;
+    }
+    /* Банер VIP */
+    #vipBanner {
+      background: linear-gradient(90deg, #ff9a9e, #fad0c4);
+      color: #fff;
+      padding: 10px;
+      border-radius: 8px;
+      text-align: center;
+      margin-bottom: 15px;
+      display: none;
+      font-weight: bold;
     }
     /* Черга */
     #queueList {
@@ -48,12 +50,13 @@
     }
     #queueList li {
       padding: 10px;
-      border-bottom: 1px solid #ccc;
+      border-bottom: 1px solid #eee;
     }
     #queueList li.current {
       background: #e0ffe0;
       font-weight: bold;
       position: relative;
+      border-left: 4px solid #4caf50;
     }
     /* Аватари */
     .avatar-selection {
@@ -66,6 +69,7 @@
       border: 2px solid transparent;
       border-radius: 50%;
       margin-right: 5px;
+      transition: border 0.3s;
     }
     .avatar-selection img.selected {
       border-color: #007bff;
@@ -79,23 +83,35 @@
       flex: 1;
       padding: 10px;
       font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      transition: border-color 0.3s;
+    }
+    input[type="text"]:focus {
+      outline: none;
+      border-color: #007bff;
     }
     button {
       padding: 10px 20px;
       font-size: 16px;
       cursor: pointer;
+      border: none;
+      border-radius: 4px;
+      transition: background 0.3s, transform 0.2s;
     }
     .primary-btn {
       background: #007bff;
       color: #fff;
-      border: none;
-      border-radius: 4px;
+    }
+    .primary-btn:hover {
+      background: #0056b3;
     }
     .btn-secondary {
       background: #6c757d;
       color: #fff;
-      border: none;
-      border-radius: 4px;
+    }
+    .btn-secondary:hover {
+      background: #5a6268;
     }
     .btn-secondary:disabled {
       opacity: 0.5;
@@ -105,25 +121,68 @@
     #chatPanel {
       height: 300px;
       overflow-y: auto;
-      border: 1px solid #ccc;
+      border: 1px solid #eee;
       padding: 10px;
       background: #fafafa;
+      border-radius: 6px;
     }
     .chat-message {
       margin-bottom: 10px;
     }
     .chat-message span {
-      font-weight: bold;
+      font-weight: 500;
+    }
+    /* Якщо користувач не в черзі, показуємо попередження */
+    #chatWarning {
+      display: none;
+      color: #d32f2f;
+      margin-top: 5px;
+      font-size: 14px;
     }
     /* Міні-гра */
     .minigame {
       margin-top: 20px;
-      padding: 10px;
+      padding: 15px;
       border: 2px dashed #007bff;
       text-align: center;
+      background: #e9f5ff;
+      border-radius: 8px;
+      position: relative;
     }
     .minigame button {
       margin-top: 10px;
+    }
+    /* Лічильник часу для міні-гри */
+    #miniGameTimer {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      font-size: 20px;
+      font-weight: bold;
+      color: #fff;
+      background: rgba(0,0,0,0.5);
+      padding: 5px 10px;
+      border-radius: 5px;
+    }
+    /* Лідери міні-гри */
+    #miniGameLeaderboardContainer {
+      background: #fff;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      margin-top: 20px;
+    }
+    #miniGameLeaderboardContainer h3 {
+      margin-bottom: 10px;
+    }
+    #miniGameLeaderboard {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    #miniGameLeaderboard li {
+      padding: 5px;
+      border-bottom: 1px solid #eee;
     }
     /* Ефект падаючої туалетної паперу */
     .falling-tp {
@@ -203,12 +262,35 @@
       font-size: 14px;
       color: #333;
     }
+    /* Анімація падаючих об’єктів у міні-грі */
+    @keyframes fall {
+      0% { top: -50px; opacity: 1; }
+      100% { top: 100%; opacity: 0; }
+    }
+    /* Оверлей підсумку міні-гри */
+    #miniGameOverlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.7);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      color: #fff;
+      font-size: 24px;
+      border-radius: 8px;
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <!-- Ліва колонка -->
     <div class="main-content">
+      <!-- Банер VIP (буде показаний, якщо користувач VIP) -->
+      <div id="vipBanner">Вітаємо, VIP клієнт!</div>
       <h1>Електронна черга в туалет</h1>
       <p>Введіть своє ім'я, щоб увійти до черги</p>
       <!-- Аватари -->
@@ -228,12 +310,12 @@
       <!-- Контейнер для падаючої туалетної паперу -->
       <div id="fallingTPContainer"></div>
       <!-- Міні-гра -->
-      <div class="minigame" id="minigameArea" style="display: none;">
+      <div class="minigame" id="minigameArea" style="display: none; position: relative;">
         <h3>Міні-гра: Злови туалетний папір!</h3>
-        <p>Клікни на падаючий рулон, щоб набрати очки!</p>
-        <div id="gameArea" style="position: relative; height: 200px; border: 1px solid #ccc;"></div>
+        <p>Клікни на падаючий рулон:</p>
+        <div id="gameArea" style="position: relative; height: 200px; border: 1px solid #ccc; background: #fff; border-radius: 8px; overflow: hidden;"></div>
         <p>Ваш рахунок: <span id="gameScore">0</span></p>
-        <button onclick="startMiniGame()">Почати гру</button>
+        <button id="startMiniGameBtn" onclick="startMiniGame()">Почати гру</button>
       </div>
     </div>
     <!-- Права колонка -->
@@ -243,14 +325,20 @@
         <h3>Чат</h3>
         <div id="chatPanel"></div>
         <div style="margin-top: 10px;">
-          <input type="text" id="chatInput" placeholder="Ваше повідомлення">
+          <input type="text" id="chatInput" placeholder="Тільки учасники черги можуть писати" disabled>
           <button id="sendChatBtn" onclick="sendChat()">Надіслати</button>
+          <div id="chatWarning" style="display:none;">Ви не записані у чергу!</div>
         </div>
       </div>
       <!-- Статистика -->
       <div>
         <h3>Статистика</h3>
         <p>Ваші відвідування: <span id="visitCount">0</span></p>
+      </div>
+      <!-- Лідери міні-гри -->
+      <div id="miniGameLeaderboardContainer">
+        <h3>Лідери міні-гри</h3>
+        <ul id="miniGameLeaderboard"></ul>
       </div>
     </div>
   </div>
@@ -277,12 +365,17 @@
     var queueRef = db.ref("queue");
     var chatRef = db.ref("chat");
     var statsRef = db.ref("stats");
+    var miniGameLeaderboardRef = db.ref("miniGameLeaderboard");
     var currentQueue = [];
     var allowedTime = 10 * 60 * 1000; // 10 хвилин
     var progressInterval = null;
     var lastOccupant = null;
     var visitCount = 0;
-    // За замовчуванням вибраний аватар (визначається через .avatar-selection)
+    var miniGameDuration = 33; // секунд
+    var miniGameTimer, miniGameInterval;
+    var miniGameTimeLeft, miniGameScore = 0;
+    var miniGameActive = false;
+    // За замовчуванням вибраний аватар
     var selectedAvatar = document.querySelector(".avatar-selection img.selected").src;
 
     /***** Аватар Selection *****/
@@ -304,11 +397,28 @@
       document.getElementById("visitCount").innerText = visitCount;
     });
 
+    /***** Лідер міні-гри *****/
+    miniGameLeaderboardRef.on("value", function(snapshot) {
+      var leaderboard = snapshot.val() || {};
+      var entries = [];
+      for (var key in leaderboard) {
+        entries.push({ name: key, score: leaderboard[key].score });
+      }
+      // Сортуємо за спаданням очок
+      entries.sort(function(a, b) { return b.score - a.score; });
+      var list = document.getElementById("miniGameLeaderboard");
+      list.innerHTML = "";
+      entries.slice(0, 5).forEach(function(entry, index) {
+        var li = document.createElement("li");
+        li.innerText = (index+1) + ". " + entry.name + " - " + entry.score;
+        list.appendChild(li);
+      });
+    });
+
     /***** Черга *****/
     queueRef.on("value", function(snapshot) {
       var queue = snapshot.val() || [];
       currentQueue = queue;
-
       if (queue.length > 0) {
         if (!queue[0].startedAt) {
           queue[0].startedAt = Date.now();
@@ -318,9 +428,7 @@
           var elapsed = Date.now() - queue[0].startedAt;
           if (elapsed >= allowedTime) {
             queue.shift();
-            // При звільненні туалету показуємо падаючу туалетну папір
             showFallingTP();
-            // Оновлення статистики для користувача, який звільнив туалет
             var occupant = localStorage.getItem("userName");
             if (occupant) {
               statsRef.child(occupant).set((visitCount || 0) + 1);
@@ -338,10 +446,10 @@
           progressInterval = null;
         }
       }
-
-      // Оновлення списку черги та стану кнопки
       renderQueue(queue);
       updateAdvanceButton();
+      updateChatPermission();
+      updateVIPBanner();
     });
 
     function renderQueue(queue) {
@@ -359,7 +467,6 @@
           if (index === 0) {
             li.classList.add("current");
             li.innerHTML = "Зараз у туалеті: " + person.name + " <img src='" + person.avatar + "' style='width:30px; vertical-align:middle; margin-left:10px;'/>";
-            // Додаємо сірник
             var matchContainer = document.createElement("div");
             matchContainer.className = "match-container";
             var match = document.createElement("div");
@@ -431,61 +538,28 @@
       }
     }
 
-    function joinQueue() {
-      var nameInput = document.getElementById("nameInput");
-      var name = nameInput.value.trim();
-      if (!name) {
-        alert("Будь ласка, введіть ваше ім'я!");
-        return;
+    function updateVIPBanner() {
+      var vipBanner = document.getElementById("vipBanner");
+      var currentUser = localStorage.getItem("userName");
+      if (currentUser && currentUser.toLowerCase() === "начальник") {
+        vipBanner.style.display = "block";
+      } else {
+        vipBanner.style.display = "none";
       }
-      var user = {
-        name: name,
-        avatar: selectedAvatar,
-        startedAt: null
-      };
-      localStorage.setItem('userName', name);
-      queueRef.once("value").then(function(snapshot) {
-        var queue = snapshot.val() || [];
-        // VIP: "Начальник" потрапляє на початок
-        if (name.toLowerCase() === "начальник") {
-          queue.unshift(user);
-        } else {
-          queue.push(user);
-        }
-        queueRef.set(queue);
-      });
-      nameInput.value = "";
-    }
-
-    function advanceQueue() {
-      queueRef.once("value").then(function(snapshot) {
-        var queue = snapshot.val() || [];
-        if (queue.length === 0) {
-          alert("Немає людей у черзі!");
-          return;
-        }
-        queue.shift();
-        queueRef.set(queue);
-      });
-    }
-
-    function showFallingTP() {
-      var container = document.getElementById("fallingTPContainer");
-      var tp = document.createElement("img");
-      tp.src = "https://img.icons8.com/color/48/000000/toilet-paper.png";
-      tp.className = "falling-tp";
-      container.appendChild(tp);
-      setTimeout(function() {
-        container.removeChild(tp);
-      }, 2000);
     }
 
     /***** Чат *****/
+    // Відправка повідомлення через Enter
+    document.getElementById("chatInput").addEventListener("keydown", function(e) {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        sendChat();
+      }
+    });
     chatRef.on("child_added", function(snapshot) {
       var message = snapshot.val();
       displayChatMessage(message);
     });
-
     function displayChatMessage(message) {
       var chatPanel = document.getElementById("chatPanel");
       var div = document.createElement("div");
@@ -494,13 +568,18 @@
       chatPanel.appendChild(div);
       chatPanel.scrollTop = chatPanel.scrollHeight;
     }
-
     function sendChat() {
       var chatInput = document.getElementById("chatInput");
       var text = chatInput.value.trim();
+      var currentUser = localStorage.getItem("userName");
+      // Дозволяти писати лише, якщо користувач у черзі
+      if (!currentUser || !isUserInQueue(currentUser)) {
+        alert("Для написання повідомлень потрібно бути записаним у чергу!");
+        return;
+      }
       if (!text) return;
       var message = {
-        name: localStorage.getItem("userName") || "Анонім",
+        name: currentUser,
         text: text,
         avatar: selectedAvatar,
         timestamp: Date.now()
@@ -508,34 +587,116 @@
       chatRef.push(message);
       chatInput.value = "";
     }
-
-    /***** Міні-гра *****/
-    var gameScore = 0;
-    function startMiniGame() {
-      gameScore = 0;
-      document.getElementById("gameScore").innerText = gameScore;
-      var gameArea = document.getElementById("gameArea");
-      gameArea.innerHTML = "";
-      var tpGame = document.createElement("img");
-      tpGame.src = "https://img.icons8.com/color/48/000000/toilet-paper.png";
-      tpGame.style.position = "absolute";
-      tpGame.style.width = "40px";
-      tpGame.style.cursor = "pointer";
-      tpGame.style.top = "0px";
-      tpGame.style.left = Math.random() * (gameArea.offsetWidth - 40) + "px";
-      tpGame.onclick = function() {
-        gameScore++;
-        document.getElementById("gameScore").innerText = gameScore;
-        gameArea.removeChild(tpGame);
-      };
-      gameArea.appendChild(tpGame);
-      setTimeout(function() {
-        if (gameArea.contains(tpGame)) {
-          gameArea.removeChild(tpGame);
-        }
-      }, 3000);
+    function isUserInQueue(userName) {
+      return currentQueue.some(function(person) {
+        return person.name === userName;
+      });
+    }
+    function updateChatPermission() {
+      var currentUser = localStorage.getItem("userName");
+      var chatInput = document.getElementById("chatInput");
+      var chatWarning = document.getElementById("chatWarning");
+      if (currentUser && isUserInQueue(currentUser)) {
+        chatInput.disabled = false;
+        chatInput.placeholder = "Ваше повідомлення";
+        chatWarning.style.display = "none";
+      } else {
+        chatInput.disabled = true;
+        chatInput.placeholder = "Тільки учасники черги можуть писати";
+        chatWarning.style.display = "block";
+        chatWarning.innerText = "Ви не записані у чергу!";
+      }
     }
 
+    /***** Міні-гра (удосконалена) *****/
+    function startMiniGame() {
+      document.getElementById("startMiniGameBtn").style.display = "none";
+      miniGameScore = 0;
+      document.getElementById("gameScore").innerText = miniGameScore;
+      var gameArea = document.getElementById("gameArea");
+      gameArea.innerHTML = "";
+      // Додаємо лічильник часу
+      var timerDisplay = document.createElement("div");
+      timerDisplay.id = "miniGameTimer";
+      timerDisplay.innerText = miniGameDuration + "s";
+      gameArea.appendChild(timerDisplay);
+      miniGameActive = true;
+      miniGameTimeLeft = miniGameDuration;
+      miniGameTimer = setInterval(function() {
+        miniGameTimeLeft--;
+        timerDisplay.innerText = miniGameTimeLeft + "s";
+        if (miniGameTimeLeft <= 0) {
+          endMiniGame();
+        }
+      }, 1000);
+      miniGameInterval = setInterval(spawnFallingObject, 1500);
+    }
+    function spawnFallingObject() {
+      if (!miniGameActive) return;
+      var gameArea = document.getElementById("gameArea");
+      var obj = document.createElement("img");
+      var isGood = Math.random() < 0.7;
+      if (isGood) {
+        obj.src = "https://img.icons8.com/color/48/000000/toilet-paper.png";
+        obj.dataset.type = "good";
+      } else {
+        obj.src = "https://img.icons8.com/fluency/48/000000/toilet-paper.png";
+        obj.dataset.type = "bad";
+      }
+      obj.style.position = "absolute";
+      obj.style.width = "40px";
+      var maxLeft = gameArea.offsetWidth - 40;
+      obj.style.left = Math.random() * maxLeft + "px";
+      obj.style.top = "-50px";
+      obj.style.cursor = "pointer";
+      obj.className = "falling-object";
+      obj.onclick = function() {
+        if (!miniGameActive) return;
+        if (this.dataset.type === "good") {
+          miniGameScore++;
+        } else {
+          miniGameScore--;
+        }
+        document.getElementById("gameScore").innerText = miniGameScore;
+        gameArea.removeChild(this);
+      };
+      gameArea.appendChild(obj);
+      obj.style.animation = "fall 3s linear forwards";
+      obj.addEventListener("animationend", function() {
+        if (gameArea.contains(obj)) {
+          gameArea.removeChild(obj);
+        }
+      });
+    }
+    function endMiniGame() {
+      miniGameActive = false;
+      clearInterval(miniGameTimer);
+      clearInterval(miniGameInterval);
+      var gameArea = document.getElementById("gameArea");
+      gameArea.innerHTML = "";
+      var overlay = document.createElement("div");
+      overlay.id = "miniGameOverlay";
+      overlay.innerHTML = "<p>Час вичерпано!</p><p>Ваш рахунок: " + miniGameScore + "</p>";
+      var restartBtn = document.createElement("button");
+      restartBtn.innerText = "Почати знову";
+      restartBtn.onclick = function() {
+        overlay.remove();
+        document.getElementById("startMiniGameBtn").style.display = "inline-block";
+      };
+      overlay.appendChild(restartBtn);
+      gameArea.appendChild(overlay);
+      updateMiniGameLeaderboard();
+    }
+    function updateMiniGameLeaderboard() {
+      var userName = localStorage.getItem("userName");
+      if (!userName) return;
+      miniGameLeaderboardRef.child(userName).once("value", function(snapshot) {
+        var prev = snapshot.val();
+        if (!prev || miniGameScore > prev.score) {
+          miniGameLeaderboardRef.child(userName).set({ score: miniGameScore });
+        }
+      });
+    }
     // Показувати міні-гру, якщо поточний користувач чекає більше 1 хвилини
     setInterval(function() {
       if (currentQueue.length > 0 && currentQueue[0].name === localStorage.getItem("userName")) {
@@ -545,6 +706,7 @@
         }
       }
     }, 5000);
+
   </script>
 </body>
 </html>
