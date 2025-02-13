@@ -132,7 +132,7 @@
     .chat-message span {
       font-weight: 500;
     }
-    /* Якщо користувач не в черзі, показуємо попередження */
+    /* Попередження для чату */
     #chatWarning {
       display: none;
       color: #d32f2f;
@@ -164,7 +164,7 @@
       padding: 5px 10px;
       border-radius: 5px;
     }
-    /* Лідери міні-гри */
+    /* Таблиця лідерів міні-гри */
     #miniGameLeaderboardContainer {
       background: #fff;
       padding: 15px;
@@ -175,14 +175,18 @@
     #miniGameLeaderboardContainer h3 {
       margin-bottom: 10px;
     }
-    #miniGameLeaderboard {
-      list-style: none;
-      padding: 0;
-      margin: 0;
+    #miniGameLeaderboardTable {
+      width: 100%;
+      border-collapse: collapse;
     }
-    #miniGameLeaderboard li {
-      padding: 5px;
-      border-bottom: 1px solid #eee;
+    #miniGameLeaderboardTable th,
+    #miniGameLeaderboardTable td {
+      border: 1px solid #eee;
+      padding: 8px;
+      text-align: center;
+    }
+    #miniGameLeaderboardTable th {
+      background: #f0f0f0;
     }
     /* Ефект падаючої туалетної паперу */
     .falling-tp {
@@ -289,7 +293,7 @@
   <div class="container">
     <!-- Ліва колонка -->
     <div class="main-content">
-      <!-- Банер VIP (буде показаний, якщо користувач VIP) -->
+      <!-- Банер VIP (показується, якщо користувач VIP) -->
       <div id="vipBanner">Вітаємо, VIP клієнт!</div>
       <h1>Електронна черга в туалет</h1>
       <p>Введіть своє ім'я, щоб увійти до черги</p>
@@ -335,10 +339,21 @@
         <h3>Статистика</h3>
         <p>Ваші відвідування: <span id="visitCount">0</span></p>
       </div>
-      <!-- Лідери міні-гри -->
+      <!-- Лідери міні-гри (таблиця) -->
       <div id="miniGameLeaderboardContainer">
         <h3>Лідери міні-гри</h3>
-        <ul id="miniGameLeaderboard"></ul>
+        <table id="miniGameLeaderboardTable">
+          <thead>
+            <tr>
+              <th>Місце</th>
+              <th>Ім'я</th>
+              <th>Очки</th>
+            </tr>
+          </thead>
+          <tbody id="miniGameLeaderboardBody">
+            <!-- Рядки будуть додаватись динамічно -->
+          </tbody>
+        </table>
       </div>
     </div>
   </div>
@@ -397,7 +412,7 @@
       document.getElementById("visitCount").innerText = visitCount;
     });
 
-    /***** Лідер міні-гри *****/
+    /***** Лідери міні-гри *****/
     miniGameLeaderboardRef.on("value", function(snapshot) {
       var leaderboard = snapshot.val() || {};
       var entries = [];
@@ -406,14 +421,25 @@
       }
       // Сортуємо за спаданням очок
       entries.sort(function(a, b) { return b.score - a.score; });
-      var list = document.getElementById("miniGameLeaderboard");
-      list.innerHTML = "";
-      entries.slice(0, 5).forEach(function(entry, index) {
-        var li = document.createElement("li");
-        li.innerText = (index+1) + ". " + entry.name + " - " + entry.score;
-        list.appendChild(li);
-      });
+      updateMiniGameLeaderboardTable(entries);
     });
+    function updateMiniGameLeaderboardTable(entries) {
+      var tbody = document.getElementById("miniGameLeaderboardBody");
+      tbody.innerHTML = "";
+      entries.slice(0, 5).forEach(function(entry, index) {
+        var tr = document.createElement("tr");
+        var tdRank = document.createElement("td");
+        tdRank.innerText = index + 1;
+        var tdName = document.createElement("td");
+        tdName.innerText = entry.name;
+        var tdScore = document.createElement("td");
+        tdScore.innerText = entry.score;
+        tr.appendChild(tdRank);
+        tr.appendChild(tdName);
+        tr.appendChild(tdScore);
+        tbody.appendChild(tr);
+      });
+    }
 
     /***** Черга *****/
     queueRef.on("value", function(snapshot) {
@@ -549,7 +575,6 @@
     }
 
     /***** Чат *****/
-    // Відправка повідомлення через Enter
     document.getElementById("chatInput").addEventListener("keydown", function(e) {
       if (e.key === "Enter") {
         e.preventDefault();
@@ -572,7 +597,6 @@
       var chatInput = document.getElementById("chatInput");
       var text = chatInput.value.trim();
       var currentUser = localStorage.getItem("userName");
-      // Дозволяти писати лише, якщо користувач у черзі
       if (!currentUser || !isUserInQueue(currentUser)) {
         alert("Для написання повідомлень потрібно бути записаним у чергу!");
         return;
@@ -697,7 +721,130 @@
         }
       });
     }
-    // Показувати міні-гру, якщо поточний користувач чекає більше 1 хвилини
+
+    /***** Черга та VIP *****/
+    function joinQueue() {
+      console.log("joinQueue() викликано");
+      var nameInput = document.getElementById("nameInput");
+      var name = nameInput.value.trim();
+      if (!name) {
+        alert("Будь ласка, введіть ваше ім'я!");
+        return;
+      }
+      var user = {
+        name: name,
+        avatar: selectedAvatar,
+        startedAt: null
+      };
+      localStorage.setItem('userName', name);
+      queueRef.once("value").then(function(snapshot) {
+        var queue = snapshot.val() || [];
+        // VIP: "Начальник" потрапляє на початок
+        if (name.toLowerCase() === "начальник") {
+          queue.unshift(user);
+        } else {
+          queue.push(user);
+        }
+        queueRef.set(queue);
+      });
+      nameInput.value = "";
+    }
+    function advanceQueue() {
+      queueRef.once("value").then(function(snapshot) {
+        var queue = snapshot.val() || [];
+        if (queue.length === 0) {
+          alert("Немає людей у черзі!");
+          return;
+        }
+        queue.shift();
+        queueRef.set(queue);
+      });
+    }
+    function showFallingTP() {
+      var container = document.getElementById("fallingTPContainer");
+      var tp = document.createElement("img");
+      tp.src = "https://img.icons8.com/color/48/000000/toilet-paper.png";
+      tp.className = "falling-tp";
+      container.appendChild(tp);
+      setTimeout(function() {
+        container.removeChild(tp);
+      }, 2000);
+    }
+    /***** Чат Permissions *****/
+    function updateChatPermission() {
+      var currentUser = localStorage.getItem("userName");
+      var chatInput = document.getElementById("chatInput");
+      var chatWarning = document.getElementById("chatWarning");
+      if (currentUser && isUserInQueue(currentUser)) {
+        chatInput.disabled = false;
+        chatInput.placeholder = "Ваше повідомлення";
+        chatWarning.style.display = "none";
+      } else {
+        chatInput.disabled = true;
+        chatInput.placeholder = "Тільки учасники черги можуть писати";
+        chatWarning.style.display = "block";
+        chatWarning.innerText = "Ви не записані у чергу!";
+      }
+    }
+    function isUserInQueue(userName) {
+      return currentQueue.some(function(person) {
+        return person.name === userName;
+      });
+    }
+
+    /***** Лідери міні-гри (оновлення таблиці) *****/
+    // Використовуємо функцію updateMiniGameLeaderboardTable з попереднього блоку
+    // (див. функцію updateMiniGameLeaderboardTable вище)
+
+    /***** VIP Банер *****/
+    function updateVIPBanner() {
+      var vipBanner = document.getElementById("vipBanner");
+      var currentUser = localStorage.getItem("userName");
+      if (currentUser && currentUser.toLowerCase() === "начальник") {
+        vipBanner.style.display = "block";
+      } else {
+        vipBanner.style.display = "none";
+      }
+    }
+
+    /***** Чат *****/
+    document.getElementById("chatInput").addEventListener("keydown", function(e) {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        sendChat();
+      }
+    });
+    chatRef.on("child_added", function(snapshot) {
+      var message = snapshot.val();
+      displayChatMessage(message);
+    });
+    function displayChatMessage(message) {
+      var chatPanel = document.getElementById("chatPanel");
+      var div = document.createElement("div");
+      div.className = "chat-message";
+      div.innerHTML = "<span>" + message.name + ":</span> " + message.text;
+      chatPanel.appendChild(div);
+      chatPanel.scrollTop = chatPanel.scrollHeight;
+    }
+    function sendChat() {
+      var chatInput = document.getElementById("chatInput");
+      var text = chatInput.value.trim();
+      var currentUser = localStorage.getItem("userName");
+      if (!currentUser || !isUserInQueue(currentUser)) {
+        alert("Для написання повідомлень потрібно бути записаним у чергу!");
+        return;
+      }
+      if (!text) return;
+      var message = {
+        name: currentUser,
+        text: text,
+        avatar: selectedAvatar,
+        timestamp: Date.now()
+      };
+      chatRef.push(message);
+      chatInput.value = "";
+    }
+    /***** Міні-гра (автоматичний показ) *****/
     setInterval(function() {
       if (currentQueue.length > 0 && currentQueue[0].name === localStorage.getItem("userName")) {
         var elapsed = Date.now() - currentQueue[0].startedAt;
@@ -706,7 +853,6 @@
         }
       }
     }, 5000);
-
   </script>
 </body>
 </html>
