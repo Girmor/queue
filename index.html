@@ -53,6 +53,11 @@
       color: #6c757d;
       margin-bottom: 20px;
     }
+    .vip-note {
+      font-size: 14px;
+      color: #d9534f;
+      margin-bottom: 10px;
+    }
     .input-group {
       display: flex;
       justify-content: center;
@@ -111,6 +116,7 @@
     #queueList li.current {
       background: #d4edda;
       font-weight: bold;
+      position: relative;
     }
     @keyframes fadeIn {
       to { opacity: 1; }
@@ -118,22 +124,56 @@
     button:active {
       transform: scale(0.95);
     }
-    /* Стилі для "сірника" (прогрес-бар) */
-    #progressContainer {
-      width: 100%;
-      height: 20px;
-      background: #ddd;
-      border-radius: 10px;
-      overflow: hidden;
-      margin-top: 20px;
-      display: none; /* спочатку приховано */
+    /* Сірник – структура */
+    .match-container {
+      margin-top: 10px;
+      text-align: center;
     }
-    #progressBar {
-      height: 100%;
+    .match {
+      position: relative;
+      width: 40px;
+      height: 100px;
+      margin: 0 auto;
+    }
+    /* Голівка сірника */
+    .match-head {
+      position: absolute;
+      bottom: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 24px;
+      height: 24px;
+      background: radial-gradient(circle, #ff9800, #f44336);
+      border-radius: 50%;
+      z-index: 2;
+    }
+    /* Тіло сірника */
+    .match-stick {
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 8px;
+      height: 80px;
+      background: #8b4513;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    /* Згораюча частина */
+    .burn-overlay {
+      position: absolute;
+      bottom: 0;
+      left: 0;
       width: 100%;
-      background: linear-gradient(90deg, #ff9800, #f44336);
-      border-radius: 10px 0 0 10px;
-      transition: width 1s linear;
+      background: #f44336;
+      opacity: 0.7;
+      height: 100%;
+      transition: height 1s linear;
+    }
+    .remaining-text {
+      margin-top: 5px;
+      font-size: 14px;
+      color: #333;
     }
   </style>
 </head>
@@ -142,7 +182,8 @@
     <img src="https://img.icons8.com/ios-filled/100/toilet.png" alt="Toilet Icon" class="header-img" />
     <h1>Електронна черга в туалет</h1>
     <p>Введіть своє ім'я, щоб увійти до черги</p>
-    
+    <!-- Примітка для VIP гостей -->
+    <div class="vip-note">VIP гості ("Начальник") обслуговуються без черги!</div>
     <div class="input-group">
       <input type="text" id="nameInput" placeholder="Ваше ім'я">
       <button class="primary-btn" onclick="joinQueue()">Встати в чергу</button>
@@ -150,28 +191,24 @@
     
     <ul id="queueList"></ul>
     
-    <!-- Прогрес-бар "сірника" -->
-    <div id="progressContainer">
-      <div id="progressBar"></div>
-    </div>
-    
     <div style="margin-top: 20px;">
-      <button class="btn-secondary" onclick="advanceQueue()">Туалет звільнився!</button>
+      <!-- Кнопка для звільнення туалету -->
+      <button class="btn-secondary" id="advanceButton" onclick="advanceQueue()">Туалет звільнився!</button>
     </div>
   </div>
 
-  <!-- Підключення Firebase (версія compat для спрощення використання) -->
+  <!-- Підключення Firebase -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
   <script>
-    // Запит дозволу на показ нотифікацій при завантаженні сторінки
+    // Запит дозволу на показ нотифікацій
     if ("Notification" in window) {
       if (Notification.permission !== "granted" && Notification.permission !== "denied") {
         Notification.requestPermission();
       }
     }
 
-    // TODO: Замініть наступні значення на свої конфігураційні дані з Firebase
+    // TODO: Замініть наступні значення на свої дані Firebase
     var firebaseConfig = {
       apiKey: "AIzaSyBgpL3-TVnAzVvGP4AGcPmzYOjTvU9G3P4",
       authDomain: "toiletqueue-be126.firebaseapp.com",
@@ -182,52 +219,77 @@
       appId: "1:391582777538:web:da61462bf4a65954f6fb5b"
     };
 
-    // Ініціалізація Firebase
     firebase.initializeApp(firebaseConfig);
     var db = firebase.database();
     var queueRef = db.ref("queue");
 
-    // Час перебування у туалеті (20 хвилин)
-    const allowedTime = 20 * 60 * 1000;
-    // Для тестування можна використовувати, наприклад, 30 секунд:
-//  const allowedTime = 30 * 1000;
+    // Час перебування змінено на 10 хвилин
+    const allowedTime = 10 * 60 * 1000; // 10 хв = 600000 мс
 
     let lastOccupant = null;
     let progressInterval = null;
     let currentQueue = [];
 
-    // Оновлення прогрес-бару ("сірника")
-    function updateProgressBar() {
+    // Функція для обчислення залишкового часу у форматі "X хв YY сек"
+    function getRemainingTime(personObj) {
+      if (!personObj.startedAt) return "";
+      var remaining = allowedTime - (Date.now() - personObj.startedAt);
+      if (remaining < 0) remaining = 0;
+      var minutes = Math.floor(remaining / 60000);
+      var seconds = Math.floor((remaining % 60000) / 1000);
+      return minutes + " хв " + (seconds < 10 ? "0" : "") + seconds + " сек";
+    }
+
+    // Оновлення "сірника" (згораючої частини) та напису
+    function updateMatch() {
       if (currentQueue.length === 0 || !currentQueue[0].startedAt) return;
-      const elapsed = Date.now() - currentQueue[0].startedAt;
-      let percentage = Math.max(0, 100 - (elapsed / allowedTime) * 100);
-      document.getElementById("progressBar").style.width = percentage + "%";
-      // Якщо час вичерпано, зупиняємо інтервал
-      if (percentage <= 0) {
+      var elapsed = Date.now() - currentQueue[0].startedAt;
+      var remaining = allowedTime - elapsed;
+      var percentage = Math.max(0, (remaining / allowedTime) * 100);
+      var burnOverlay = document.querySelector(".current .burn-overlay");
+      if (burnOverlay) {
+        burnOverlay.style.height = percentage + "%";
+      }
+      var remainingTextElem = document.querySelector(".current .remaining-text");
+      if (remainingTextElem) {
+        remainingTextElem.innerText = "У " + currentQueue[0].name + " залишилося: " + getRemainingTime(currentQueue[0]);
+      }
+      if (remaining <= 0) {
         clearInterval(progressInterval);
         progressInterval = null;
       }
     }
 
-    // Слухаємо зміни в базі даних у реальному часі
+    // Функція, що оновлює стан кнопки "Туалет звільнився!"
+    function updateAdvanceButton() {
+      var btn = document.getElementById("advanceButton");
+      var currentUser = localStorage.getItem('userName');
+      if (currentQueue.length > 0 && currentQueue[0].name === currentUser) {
+        btn.disabled = false;
+        btn.style.opacity = 1;
+        btn.title = "Ви можете звільнити туалет";
+      } else {
+        btn.disabled = true;
+        btn.style.opacity = 0.5;
+        btn.title = "Тільки користувач, який знаходиться у туалеті, може звільнити його";
+      }
+    }
+
+    // Слухаємо зміни в Firebase
     queueRef.on("value", function(snapshot) {
       var queue = snapshot.val() || [];
-      currentQueue = queue; // оновлюємо глобальну змінну
+      currentQueue = queue;
 
-      // Якщо черга не порожня, працюємо з першим користувачем
       if (queue.length > 0) {
         // Якщо у першого користувача немає часу старту, встановлюємо його
         if (!queue[0].startedAt) {
           queue[0].startedAt = Date.now();
           queueRef.set(queue);
-          return; 
+          return;
         } else {
-          // Перевірка часу перебування
           var elapsed = Date.now() - queue[0].startedAt;
           if (elapsed >= allowedTime) {
-            // Видаляємо першого користувача автоматично
             queue.shift();
-            // Оповіщення про перевищення часу
             if (Notification.permission === "granted") {
               new Notification("Туалет звільнився!", {
                 body: "Ну це капець... так довго не можна сидіти, виходимо!"
@@ -239,21 +301,17 @@
             return;
           }
         }
-        // Показуємо прогрес-бар і запускаємо інтервал оновлення, якщо його ще немає
-        document.getElementById("progressContainer").style.display = "block";
         if (!progressInterval) {
-          progressInterval = setInterval(updateProgressBar, 1000);
+          progressInterval = setInterval(updateMatch, 1000);
         }
       } else {
-        // Якщо черга порожня, ховаємо прогрес-бар та очищуємо інтервал
-        document.getElementById("progressContainer").style.display = "none";
         if (progressInterval) {
           clearInterval(progressInterval);
           progressInterval = null;
         }
       }
 
-      // Оповіщення про звільнення туалету (ручне звільнення)
+      // Оповіщення при ручному звільненні
       var occupant = (queue.length > 0) ? queue[0].name : null;
       if (lastOccupant && occupant === null) {
         if (Notification.permission === "granted") {
@@ -268,7 +326,7 @@
       renderQueue(queue);
     });
 
-    // Функція для відображення черги
+    // Відображення черги із сірником для першого користувача
     function renderQueue(queue) {
       const queueList = document.getElementById("queueList");
       queueList.innerHTML = "";
@@ -284,16 +342,38 @@
           li.style.animationDelay = (index * 0.1) + "s";
           if (index === 0) {
             li.classList.add("current");
-            li.textContent = "Зараз у туалеті: " + personObj.name;
+            li.innerHTML = "Зараз у туалеті: " + personObj.name;
+            // Створення контейнера сірника
+            var matchContainer = document.createElement("div");
+            matchContainer.className = "match-container";
+            var match = document.createElement("div");
+            match.className = "match";
+            var matchHead = document.createElement("div");
+            matchHead.className = "match-head";
+            var matchStick = document.createElement("div");
+            matchStick.className = "match-stick";
+            var burnOverlay = document.createElement("div");
+            burnOverlay.className = "burn-overlay";
+            burnOverlay.style.height = "100%";
+            matchStick.appendChild(burnOverlay);
+            match.appendChild(matchHead);
+            match.appendChild(matchStick);
+            matchContainer.appendChild(match);
+            var remainingText = document.createElement("div");
+            remainingText.className = "remaining-text";
+            remainingText.innerText = "У " + personObj.name + " залишилося: " + getRemainingTime(personObj);
+            matchContainer.appendChild(remainingText);
+            li.appendChild(matchContainer);
           } else {
             li.textContent = (index + 1) + ". " + personObj.name;
           }
           queueList.appendChild(li);
         });
       }
+      updateAdvanceButton();
     }
 
-    // Додаємо користувача до черги
+    // Додавання користувача до черги; VIP ("Начальник") потрапляє на початок
     function joinQueue() {
       const nameInput = document.getElementById("nameInput");
       const name = nameInput.value.trim();
@@ -301,15 +381,21 @@
         alert("Будь ласка, введіть ваше ім'я!");
         return;
       }
+      localStorage.setItem('userName', name);
       queueRef.once("value").then(function(snapshot) {
         const currentQueue = snapshot.val() || [];
-        currentQueue.push({ name: name, startedAt: null });
+        // Якщо користувач є "Начальник" (VIP), вставляємо на початок черги
+        if (name.toLowerCase() === "начальник") {
+          currentQueue.unshift({ name: name, startedAt: null });
+        } else {
+          currentQueue.push({ name: name, startedAt: null });
+        }
         queueRef.set(currentQueue);
       });
       nameInput.value = "";
     }
 
-    // Ручне звільнення першого користувача
+    // Ручне звільнення першого користувача (натискає тільки той, хто зараз у туалеті)
     function advanceQueue() {
       queueRef.once("value").then(function(snapshot) {
         const currentQueue = snapshot.val() || [];
