@@ -667,7 +667,7 @@
       }
     }, 5000);
 
-    /***** Міні-гра: Новий варіант з туалетною папером та какашкою *****/
+    /***** Міні-гра: Новий варіант з туалетною папером та йоршиком *****/
     function startMiniGame() {
       document.getElementById("startMiniGameBtn").style.display = "none";
       miniGameScore = 0;
@@ -694,14 +694,14 @@
       if (!miniGameActive) return;
       var gameArea = document.getElementById("gameArea");
       var obj = document.createElement("img");
-      // 70% шанс – туалетна папір (добрий), 30% – какашка (поганий)
+      // 70% шанс – туалетна папір (добрий), 30% – йоршик (поганий)
       var random = Math.random();
       if (random < 0.7) {
         obj.src = "https://img.icons8.com/color/48/000000/toilet-paper.png";
         obj.dataset.type = "good";
       } else {
-        // Використовуємо інший URL для іконки "какашки"
-        obj.src = "https://img.icons8.com/emoji/48/000000/poop.png";
+        // Замість "какашки" використовується іконка йоршика
+        obj.src = "https://img.icons8.com/ios-filled/50/000000/toilet-brush.png";
         obj.dataset.type = "bad";
       }
       obj.style.position = "absolute";
