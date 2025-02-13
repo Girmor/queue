@@ -124,7 +124,7 @@
     button:active {
       transform: scale(0.95);
     }
-    /* Сірник – структура */
+    /* Структура сірника */
     .match-container {
       margin-top: 10px;
       text-align: center;
@@ -135,7 +135,7 @@
       height: 100px;
       margin: 0 auto;
     }
-    /* Голівка сірника */
+    /* Голівка сірника з пульсацією */
     .match-head {
       position: absolute;
       bottom: 80px;
@@ -146,6 +146,13 @@
       background: radial-gradient(circle, #ff9800, #f44336);
       border-radius: 50%;
       z-index: 2;
+    }
+    .match-head.pulse {
+      animation: flamePulse 1s infinite;
+    }
+    @keyframes flamePulse {
+      0%, 100% { transform: translateX(-50%) scale(1); }
+      50% { transform: translateX(-50%) scale(1.1); }
     }
     /* Тіло сірника */
     .match-stick {
@@ -159,7 +166,7 @@
       border-radius: 4px;
       overflow: hidden;
     }
-    /* Згораюча частина */
+    /* Згораюча частина з мерехтінням */
     .burn-overlay {
       position: absolute;
       bottom: 0;
@@ -169,6 +176,14 @@
       opacity: 0.7;
       height: 100%;
       transition: height 1s linear;
+    }
+    .burn-overlay.flicker {
+      animation: flicker 0.2s infinite;
+    }
+    @keyframes flicker {
+      0% { opacity: 0.7; filter: brightness(1); }
+      50% { opacity: 0.9; filter: brightness(1.2); }
+      100% { opacity: 0.7; filter: brightness(1); }
     }
     .remaining-text {
       margin-top: 5px;
@@ -192,7 +207,7 @@
     <ul id="queueList"></ul>
     
     <div style="margin-top: 20px;">
-      <!-- Кнопка для звільнення туалету -->
+      <!-- Кнопка звільнення туалету; активна тільки для поточного користувача -->
       <button class="btn-secondary" id="advanceButton" onclick="advanceQueue()">Туалет звільнився!</button>
     </div>
   </div>
@@ -223,8 +238,8 @@
     var db = firebase.database();
     var queueRef = db.ref("queue");
 
-    // Час перебування змінено на 10 хвилин
-    const allowedTime = 10 * 60 * 1000; // 10 хв = 600000 мс
+    // Час перебування встановлено на 10 хвилин (600000 мс)
+    const allowedTime = 10 * 60 * 1000;
 
     let lastOccupant = null;
     let progressInterval = null;
@@ -240,7 +255,7 @@
       return minutes + " хв " + (seconds < 10 ? "0" : "") + seconds + " сек";
     }
 
-    // Оновлення "сірника" (згораючої частини) та напису
+    // Оновлення сірника: змінюємо висоту overlay та оновлюємо текст
     function updateMatch() {
       if (currentQueue.length === 0 || !currentQueue[0].startedAt) return;
       var elapsed = Date.now() - currentQueue[0].startedAt;
@@ -260,7 +275,7 @@
       }
     }
 
-    // Функція, що оновлює стан кнопки "Туалет звільнився!"
+    // Оновлення стану кнопки "Туалет звільнився!"
     function updateAdvanceButton() {
       var btn = document.getElementById("advanceButton");
       var currentUser = localStorage.getItem('userName');
@@ -275,13 +290,12 @@
       }
     }
 
-    // Слухаємо зміни в Firebase
+    // Слухач змін в Firebase
     queueRef.on("value", function(snapshot) {
       var queue = snapshot.val() || [];
       currentQueue = queue;
 
       if (queue.length > 0) {
-        // Якщо у першого користувача немає часу старту, встановлюємо його
         if (!queue[0].startedAt) {
           queue[0].startedAt = Date.now();
           queueRef.set(queue);
@@ -311,7 +325,7 @@
         }
       }
 
-      // Оповіщення при ручному звільненні
+      // Якщо попередній occupant був, а тепер його нема – оповіщення
       var occupant = (queue.length > 0) ? queue[0].name : null;
       if (lastOccupant && occupant === null) {
         if (Notification.permission === "granted") {
@@ -326,7 +340,7 @@
       renderQueue(queue);
     });
 
-    // Відображення черги із сірником для першого користувача
+    // Відображення черги; для першого користувача додається сірник з комбінованою анімацією
     function renderQueue(queue) {
       const queueList = document.getElementById("queueList");
       queueList.innerHTML = "";
@@ -349,11 +363,11 @@
             var match = document.createElement("div");
             match.className = "match";
             var matchHead = document.createElement("div");
-            matchHead.className = "match-head";
+            matchHead.className = "match-head pulse"; // пульсуюча голівка
             var matchStick = document.createElement("div");
             matchStick.className = "match-stick";
             var burnOverlay = document.createElement("div");
-            burnOverlay.className = "burn-overlay";
+            burnOverlay.className = "burn-overlay flicker"; // мерехтить
             burnOverlay.style.height = "100%";
             matchStick.appendChild(burnOverlay);
             match.appendChild(matchHead);
@@ -373,7 +387,7 @@
       updateAdvanceButton();
     }
 
-    // Додавання користувача до черги; VIP ("Начальник") потрапляє на початок
+    // Додавання користувача до черги; зберігаємо ім'я в localStorage. VIP ("Начальник") потрапляє на початок.
     function joinQueue() {
       const nameInput = document.getElementById("nameInput");
       const name = nameInput.value.trim();
@@ -384,7 +398,6 @@
       localStorage.setItem('userName', name);
       queueRef.once("value").then(function(snapshot) {
         const currentQueue = snapshot.val() || [];
-        // Якщо користувач є "Начальник" (VIP), вставляємо на початок черги
         if (name.toLowerCase() === "начальник") {
           currentQueue.unshift({ name: name, startedAt: null });
         } else {
@@ -395,7 +408,7 @@
       nameInput.value = "";
     }
 
-    // Ручне звільнення першого користувача (натискає тільки той, хто зараз у туалеті)
+    // Ручне звільнення – може натискати тільки користувач, який знаходиться у туалеті.
     function advanceQueue() {
       queueRef.once("value").then(function(snapshot) {
         const currentQueue = snapshot.val() || [];
@@ -407,6 +420,9 @@
         queueRef.set(currentQueue);
       });
     }
+
+    // При завантаженні сторінки оновлюємо стан кнопки
+    document.addEventListener("DOMContentLoaded", updateAdvanceButton);
   </script>
 </body>
 </html>
