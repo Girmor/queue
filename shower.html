@@ -13,32 +13,12 @@
       margin: 0;
       padding: 0;
       background: #eef2f3;
+      overflow-x: hidden;
     }
     .container {
       max-width: 1200px;
       margin: 20px auto;
       padding: 20px;
-    }
-    /* Кнопка для запуску міні-гри (Memory Maze) */
-    #miniGameButtonContainer {
-      text-align: center;
-      margin-bottom: 20px;
-      display: none;
-    }
-    #miniGameBtn {
-      background: transparent;
-      border: none;
-      cursor: pointer;
-      outline: none;
-    }
-    #miniGameBtn img {
-      vertical-align: middle;
-    }
-    #miniGameBtn span {
-      font-size: 1.2em;
-      vertical-align: middle;
-      color: #007bff;
-      margin-left: 5px;
     }
     /* Форма бронювання */
     .booking-form {
@@ -234,55 +214,98 @@
       color: #d32f2f;
       font-size: 0.9em;
     }
-    /* Міні-гра: Memory Maze */
-    .minigame {
+    /* Віртуальна душова кімната */
+    .virtual-shower-room {
       margin-top: 30px;
-      background: #e9f5ff;
-      padding: 20px;
+      background: rgba(0,150,255,0.1);
       border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      animation: waterBackground 5s infinite;
+    }
+    @keyframes waterBackground {
+      0% { background: rgba(0,150,255,0.1); }
+      50% { background: rgba(0,150,255,0.3); }
+      100% { background: rgba(0,150,255,0.1); }
+    }
+    .virtual-shower-room h2 {
       text-align: center;
-      position: relative;
+      color: #007bff;
     }
-    .minigame h3 {
-      margin-top: 0;
-      color: #333;
+    .avatar-container {
+      text-align: center;
+      margin: 20px 0;
     }
-    #gameCanvas {
-      background: #fff;
-      display: block;
-      margin: 0 auto 15px auto;
-      border: 2px solid #007bff;
-      border-radius: 8px;
+    .avatar {
+      display: inline-block;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background-color: #03A9F4;
+      margin: 5px;
+      animation: float 3s ease-in-out infinite;
     }
-    #gameScore {
-      font-size: 1.2em;
-      font-weight: bold;
-      color: #333;
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
     }
-    #startMiniGameBtn {
-      padding: 10px 20px;
-      background: #007bff;
-      color: #fff;
-      border: none;
-      border-radius: 6px;
+    .poll-section {
+      text-align: center;
+      margin: 20px 0;
+    }
+    .poll-section button {
+      margin: 5px;
+      padding: 8px 12px;
+      background-color: #1e1e1e;
+      color: #f0f0f0;
+      border: 1px solid #444;
+      border-radius: 4px;
       cursor: pointer;
-      transition: background 0.3s;
     }
-    #startMiniGameBtn:hover {
-      background: #0056b3;
+    .poll-section button:hover {
+      background-color: #333;
+    }
+    #pollResults {
+      margin-top: 10px;
+      font-size: 1em;
+      color: #ffeb3b;
+    }
+    /* Кнопка "Оновити" для водяного ефекту */
+    #refreshBtn {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #1e1e1e;
+      color: #f0f0f0;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      z-index: 1000;
+    }
+    #refreshBtn:hover {
+      background: #333;
+    }
+    @keyframes waterRipple {
+      0% { opacity: 0; transform: scale(0.5); }
+      50% { opacity: 0.5; transform: scale(1.0); }
+      100% { opacity: 0; transform: scale(1.5); }
+    }
+    .water-animation {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,150,255,0.3);
+      pointer-events: none;
+      animation: waterRipple 1s ease-out;
+      z-index: 999;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <!-- Кнопка для запуску міні-гри (Memory Maze) -->
-    <div id="miniGameButtonContainer">
-      <button id="miniGameBtn">
-        <img src="https://img.icons8.com/ios-filled/50/000000/tank.png" alt="Tank Icon">
-        <span>Міні-гра</span>
-      </button>
-    </div>
-
     <!-- Форма бронювання -->
     <div class="booking-form">
       <div id="vipBanner"></div>
@@ -316,7 +339,7 @@
       </div>
     </div>
 
-    <!-- Лідери -->
+    <!-- Лідери бронювань -->
     <div id="leaderboardContainer">
       <h3>Лідери бронювань</h3>
       <table id="leaderboardTable">
@@ -340,21 +363,33 @@
       <div id="chatWarning" style="display:none;">Ви не забронювали!</div>
     </div>
 
-    <!-- Міні-гра: Memory Maze -->
-    <div class="minigame" id="minigameArea" style="display:none;">
-      <h3>Міні-гра: Memory Maze</h3>
-      <canvas id="gameCanvas" width="300" height="300"></canvas>
-      <p>Ваш рівень: <span id="gameScore">0</span></p>
-      <button id="startMiniGameBtn">Почати гру</button>
+    <!-- Віртуальна душова кімната -->
+    <div class="virtual-shower-room" id="virtualShowerRoom">
+      <h2>Віртуальна душова кімната</h2>
+      <div class="avatar-container" id="avatarContainer">
+        <div class="avatar"></div>
+        <div class="avatar"></div>
+        <div class="avatar"></div>
+        <!-- Можна додати більше аватарів -->
+      </div>
+      <div class="poll-section" id="pollSection">
+        <h3>Яка пісня ідеально підходить для душу?</h3>
+        <button onclick="vote('song1')">Пісня 1</button>
+        <button onclick="vote('song2')">Пісня 2</button>
+        <button onclick="vote('song3')">Пісня 3</button>
+        <div id="pollResults"></div>
+      </div>
     </div>
   </div>
+
+  <!-- Кнопка "Оновити" для водяного ефекту -->
+  <button id="refreshBtn" onclick="showWaterAnimation()">Оновити</button>
 
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
   <script>
     /***** Firebase Configuration *****/
-    // Замість цих даних використовуйте свої власні з Firebase Console
     var firebaseConfig = {
       apiKey: "AIzaSyBgpL3-TVnAzVvGP4AGcPmzYOjTvU9G3P4",
       authDomain: "toiletqueue-be126.firebaseapp.com",
@@ -371,9 +406,9 @@
     var reservationsRef = db.ref("showerReservations");
     var leaderboardRef = db.ref("showerLeaderboard");
     var chatRef = db.ref("showerChat");
-    var currentReservations = []; // містить бронювання з дозволених дат
+    var currentReservations = []; // бронювання з дозволених дат
     var currentReservation = null; // бронювання для сьогодні
-    var miniGameDuration = 33; // секунд для Memory Maze
+    var miniGameDuration = 33; // (не використовується, але залишаємо для сумісності)
 
     /***** Allowed Dates: сьогодні, завтра, післязавтра *****/
     function getAllowedDates() {
@@ -431,14 +466,14 @@
       // Перевірка: користувач може бронювати максимум на 3 дні
       var bookingCount = 0;
       allowedDates.forEach(function(d) {
-         if (localStorage.getItem("userBooking_" + d)) {
-            var bObj = JSON.parse(localStorage.getItem("userBooking_" + d));
+         var bStr = localStorage.getItem("userBooking_" + d);
+         if (bStr) {
+            var bObj = JSON.parse(bStr);
             if (bObj.name.toLowerCase() === normalizedName) {
                bookingCount++;
             }
          }
       });
-      // Якщо для цієї дати ще немає бронювання, а користувач вже має бронювання на 3 дні, відхиляємо
       if (!localStorage.getItem("userBooking_" + date) && bookingCount >= 3) {
          alert("Ви можете забронювати максимум на 3 дні!");
          return;
@@ -457,7 +492,7 @@
       reservationsRef.child(date).update({ [normalizedName]: reservation });
       // Зберігаємо бронювання в localStorage (ключ: userBooking_<date>)
       localStorage.setItem("userBooking_" + date, JSON.stringify({ name: nameInput, date: date }));
-      // Також зберігаємо загальне ім'я користувача, щоб використовувати для перевірок у черзі
+      // Зберігаємо загальне ім'я користувача
       localStorage.setItem("userName", normalizedName);
       alert("Бронювання підтверджено!");
     });
@@ -475,26 +510,21 @@
             }
             remaining--;
             if (remaining === 0) {
-               // Сортуємо за часом початку
                currentReservations.sort(function(a, b) {
                   return a.scheduledStart - b.scheduledStart;
                });
                updateQueueDisplay();
-               updateCancelButtons();
-               updateMiniGameButton();
             }
          });
       });
     }
-    // Оновлюємо бронювання кожні 5 секунд
     setInterval(updateAllBookings, 5000);
     updateAllBookings();
 
-    /***** Вивід черги бронювань (показуємо 5 найбільш актуальних) *****/
+    /***** Вивід черги бронювань (5 актуальних) *****/
     function updateQueueDisplay() {
       var queueList = document.getElementById("reservationQueue");
       queueList.innerHTML = "";
-      // Виводимо лише 5 найактуальніших бронювань
       var bookingsToShow = currentReservations.slice(0, 5);
       var monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
       if (bookingsToShow.length === 0) {
@@ -512,7 +542,7 @@
             var mm = (d.getMinutes() < 10 ? "0" : "") + d.getMinutes();
             var formattedTime = dayStr + " " + monthStr + ", " + hh + ":" + mm;
             li.innerHTML = "<strong>" + (index + 1) + ".</strong> " + formattedTime + " - " + res.name;
-            // Якщо бронювання належить поточному користувачу, додаємо кнопку скасування
+            // Додаємо кнопку скасування для бронювань поточного користувача
             var currentUser = localStorage.getItem("userName");
             if (currentUser && res.normalizedName === currentUser) {
                var cancelBtn = document.createElement("button");
@@ -541,35 +571,38 @@
       });
     }
 
-    /***** Для поточного бронювання (тільки для сьогодні) *****/
+    /***** Поточне бронювання (для сьогодні) *****/
     function updateCurrentReservation() {
       var now = Date.now();
       var todayStrLocal = new Date().toISOString().split("T")[0];
-      // Фільтруємо бронювання лише для сьогодні
       var todayBookings = currentReservations.filter(function(res) {
          return res.date === todayStrLocal;
       });
       todayBookings.sort(function(a, b) {
          return a.scheduledStart - b.scheduledStart;
       });
-      currentReservation = null;
-      todayBookings.forEach(function(res) {
+      var activeBooking = null;
+      for (var i = 0; i < todayBookings.length; i++) {
+         var res = todayBookings[i];
          var endTime = res.scheduledStart + res.reservedTime * 60 * 1000;
          if (now >= res.scheduledStart && now < endTime) {
-            currentReservation = res;
+            activeBooking = res;
+            break;
          }
-      });
+      }
+      currentReservation = activeBooking;
+      
       var currentDiv = document.getElementById("currentReservation");
-      if (currentReservation) {
-         var elapsed = now - currentReservation.scheduledStart;
-         var total = currentReservation.reservedTime * 60 * 1000;
+      if (activeBooking) {
+         var elapsed = now - activeBooking.scheduledStart;
+         var total = activeBooking.reservedTime * 60 * 1000;
          var remainingTime = total - elapsed;
          var minutesRemaining = Math.floor(remainingTime / 60000);
          var secondsRemaining = Math.floor((remainingTime % 60000) / 1000);
-         currentDiv.textContent = "Зараз миється: " + currentReservation.name + " (" + minutesRemaining + " хв " + (secondsRemaining < 10 ? "0" : "") + secondsRemaining + " сек залишилося)";
+         currentDiv.textContent = "Зараз миється: " + activeBooking.name + " (" + minutesRemaining + " хв " + (secondsRemaining < 10 ? "0" : "") + secondsRemaining + " сек залишилося)";
          var percent = Math.min(100, (elapsed / total) * 100);
          document.getElementById("progressBar").style.width = percent + "%";
-         if (!currentReservation.confirmed && (total - elapsed <= 5 * 60 * 1000)) {
+         if (!activeBooking.confirmed && (total - elapsed <= 5 * 60 * 1000)) {
             document.getElementById("confirmContainer").innerHTML = '<button class="confirm-btn" onclick="confirmReservation()">Підтвердити візит</button>';
          } else {
             document.getElementById("confirmContainer").innerHTML = "";
@@ -580,7 +613,6 @@
          document.getElementById("confirmContainer").innerHTML = "";
       }
     }
-    // Оновлення поточного бронювання кожну секунду
     setInterval(updateCurrentReservation, 1000);
 
     function confirmReservation() {
@@ -595,7 +627,6 @@
       currentReservations.forEach(function(res) {
          leaderboardData[res.normalizedName] = (leaderboardData[res.normalizedName] || 0) + 1;
       });
-      // Записуємо лідерів для сьогоднішньої дати
       var todayStrLocal = new Date().toISOString().split("T")[0];
       leaderboardRef.child(todayStrLocal).set(leaderboardData);
       updateLeaderboardDisplay();
@@ -651,8 +682,8 @@
     });
     document.getElementById("sendChatBtn").addEventListener("click", sendChat);
     chatRef.on("child_added", function(snapshot) {
-      var message = snapshot.val();
-      displayChatMessage(message);
+         var message = snapshot.val();
+         displayChatMessage(message);
     });
     function displayChatMessage(message) {
       var chatPanel = document.getElementById("chatPanel");
@@ -700,157 +731,33 @@
       }
     }
 
-    /***** Кнопка міні-гри *****/
-    document.getElementById("miniGameBtn").addEventListener("click", function() {
-      document.getElementById("minigameArea").style.display = "block";
-      startMemoryMazeGame();
-    });
-    function updateMiniGameButton() {
-      var currentUser = localStorage.getItem("userName");
-      var miniGameButtonContainer = document.getElementById("miniGameButtonContainer");
-      if (currentUser && currentReservations.some(function(res) { return res.normalizedName === currentUser; })) {
-         miniGameButtonContainer.style.display = "block";
-      } else {
-         miniGameButtonContainer.style.display = "none";
-      }
+    /***** Кнопка міні-гри видалена - Memory Maze більше не використовується *****/
+
+    /***** Віртуальна душова кімната та опитування *****/
+    function vote(option) {
+      var pollResults = document.getElementById("pollResults");
+      pollResults.innerText = "Ви обрали: " + option;
     }
 
-    /***** Міні-гра: Memory Maze *****/
-    // Концепція: на demo-фазі показується маршрут лабіринту (5 секунд), а потім гравець має повторити його.
-    function generateMemoryMazeRoute() {
-      var routeLength = memoryMazeLevel + 3;
-      memoryMazeRoute = [];
-      var current = { x: 0, y: 0 };
-      memoryMazeRoute.push(current);
-      for (var i = 1; i < routeLength; i++) {
-         var possibleMoves = [];
-         if (current.x > 0) possibleMoves.push({ x: current.x - 1, y: current.y });
-         if (current.x < gridSize - 1) possibleMoves.push({ x: current.x + 1, y: current.y });
-         if (current.y > 0) possibleMoves.push({ x: current.x, y: current.y - 1 });
-         if (current.y < gridSize - 1) possibleMoves.push({ x: current.x, y: current.y + 1 });
-         var next = possibleMoves[Math.floor(Math.random() * possibleMoves.length)];
-         memoryMazeRoute.push(next);
-         current = next;
-      }
+    /***** Кнопка "Оновити" для водяного ефекту *****/
+    function showWaterAnimation() {
+      var anim = document.createElement("div");
+      anim.className = "water-animation";
+      document.body.appendChild(anim);
+      setTimeout(function() {
+         document.body.removeChild(anim);
+      }, 1000);
     }
-    function drawMemoryMaze() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      // Малюємо сітку
-      ctx.strokeStyle = "#aaa";
-      for (var i = 0; i <= gridSize; i++) {
-         ctx.beginPath();
-         ctx.moveTo(i * cellSize, 0);
-         ctx.lineTo(i * cellSize, canvas.height);
-         ctx.stroke();
-         ctx.beginPath();
-         ctx.moveTo(0, i * cellSize);
-         ctx.lineTo(canvas.width, i * cellSize);
-         ctx.stroke();
-      }
-      // Якщо demo-фаза, підсвічуємо маршрут
-      if (memoryMazePhase === "demo") {
-         for (var i = 0; i < memoryMazeRoute.length; i++) {
-            var cell = memoryMazeRoute[i];
-            ctx.fillStyle = "rgba(0, 123, 255, 0.5)";
-            ctx.fillRect(cell.x * cellSize, cell.y * cellSize, cellSize, cellSize);
-         }
-      }
-      // Малюємо позицію гравця
-      if (playerPosition) {
-         ctx.fillStyle = "#FFEB3B";
-         ctx.beginPath();
-         ctx.arc(playerPosition.x * cellSize + cellSize/2, playerPosition.y * cellSize + cellSize/2, cellSize/3, 0, 2*Math.PI);
-         ctx.fill();
-      }
-    }
-    function showMemoryMazeRoute() {
-      memoryMazePhase = "demo";
-      drawMemoryMaze();
-      setTimeout(startMemoryMazeReplication, demoDuration);
-    }
-    function startMemoryMazeGame() {
-      generateMemoryMazeRoute();
-      memoryMazePhase = "demo";
-      currentRouteStep = 0;
-      playerPosition = { x: memoryMazeRoute[0].x, y: memoryMazeRoute[0].y };
-      showMemoryMazeRoute();
-    }
-    function startMemoryMazeReplication() {
-      memoryMazePhase = "replication";
-      drawMemoryMaze();
-    }
-    // Обробка клавіш (стрілки)
-    document.addEventListener("keydown", function(e) {
-      if (memoryMazePhase === "replication") {
-         var newX = playerPosition.x;
-         var newY = playerPosition.y;
-         if (e.keyCode === 37) { newX--; }
-         else if (e.keyCode === 38) { newY--; }
-         else if (e.keyCode === 39) { newX++; }
-         else if (e.keyCode === 40) { newY++; }
-         if (newX < 0 || newX >= gridSize || newY < 0 || newY >= gridSize) return;
-         playerPosition = { x: newX, y: newY };
-         drawMemoryMaze();
-         if (currentRouteStep < memoryMazeRoute.length - 1) {
-            var expected = memoryMazeRoute[currentRouteStep + 1];
-            if (playerPosition.x === expected.x && playerPosition.y === expected.y) {
-               currentRouteStep++;
-               if (currentRouteStep === memoryMazeRoute.length - 1) {
-                  alert("Вітаємо! Ви повторили маршрут рівня " + memoryMazeLevel + "!");
-                  document.getElementById("gameScore").innerText = memoryMazeLevel;
-                  memoryMazeLevel++;
-                  setTimeout(startMemoryMazeGame, 1000);
-               }
-            } else {
-               alert("Помилка! Ви не повторили маршрут. Гру завершено. Ваш рівень: " + memoryMazeLevel);
-               setTimeout(startMemoryMazeGame, 1000);
-            }
-         }
-      }
-    });
-    // Обробка кліків (для ПК)
-    canvas.addEventListener("click", function(e) {
-      if (memoryMazePhase === "replication") {
-         var rect = canvas.getBoundingClientRect();
-         var x = e.clientX - rect.left;
-         var y = e.clientY - rect.top;
-         var cellX = Math.floor(x / cellSize);
-         var cellY = Math.floor(y / cellSize);
-         if (Math.abs(cellX - playerPosition.x) + Math.abs(cellY - playerPosition.y) === 1) {
-            playerPosition = { x: cellX, y: cellY };
-            drawMemoryMaze();
-            if (currentRouteStep < memoryMazeRoute.length - 1) {
-               var expected = memoryMazeRoute[currentRouteStep + 1];
-               if (playerPosition.x === expected.x && playerPosition.y === expected.y) {
-                  currentRouteStep++;
-                  if (currentRouteStep === memoryMazeRoute.length - 1) {
-                     alert("Вітаємо! Ви повторили маршрут рівня " + memoryMazeLevel + "!");
-                     document.getElementById("gameScore").innerText = memoryMazeLevel;
-                     memoryMazeLevel++;
-                     setTimeout(startMemoryMazeGame, 1000);
-                  }
-               } else {
-                  alert("Помилка! Ви не повторили маршрут. Гру завершено. Ваш рівень: " + memoryMazeLevel);
-                  setTimeout(startMemoryMazeGame, 1000);
-               }
-            }
-         }
-      }
-    });
-    /***** Міні-гра: Кнопка для запуску Memory Maze *****/
+
+    // гра міні деш
     document.getElementById("miniGameBtn").addEventListener("click", function() {
-      document.getElementById("minigameArea").style.display = "block";
-      startMemoryMazeGame();
+      window.open("shower-dash.html", "_blank", "width=420,height=700");
     });
-    function updateMiniGameButton() {
-      var currentUser = localStorage.getItem("userName");
-      var miniGameButtonContainer = document.getElementById("miniGameButtonContainer");
-      if (currentUser && currentReservations.some(function(res) { return res.normalizedName === currentUser; })) {
-         miniGameButtonContainer.style.display = "block";
-      } else {
-         miniGameButtonContainer.style.display = "none";
-      }
-    }
+
+
+
+    /***** Функції для анімації водяного ефекту *****/
+    // Конфетті вже використовується для відзначення успіху в інших розділах (якщо потрібно – додайте інші анімації)
   </script>
 </body>
 </html>
