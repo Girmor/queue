@@ -3,868 +3,244 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Електронна черга в душ</title>
-  <!-- Google Fonts -->
-  <link href="https://fonts.googleapis.com/css?family=Roboto:400,500,700&display=swap" rel="stylesheet">
+  <title>Shower Dash</title>
   <style>
-    /* Загальний сучасний дизайн */
     body {
-      font-family: 'Roboto', sans-serif;
       margin: 0;
-      padding: 0;
       background: #eef2f3;
-      overflow-x: hidden;
+      font-family: 'Roboto', sans-serif;
+      overflow: hidden;
+      position: relative;
     }
-    .container {
-      max-width: 1200px;
-      margin: 20px auto;
-      padding: 20px;
+    #gameCanvas {
+      background: #fff;
+      display: block;
+      margin: 50px auto 20px auto;
+      border: 2px solid #007bff;
+      border-radius: 8px;
     }
-    /* Контейнер для заголовку і кнопки міні-гри */
-    .header-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+    #scoreDisplay {
+      text-align: center;
+      font-size: 1.5em;
+      color: #333;
       margin-bottom: 20px;
     }
-    /* Кнопка для міні-гри – завжди показана, стилізована як кнопка */
-    #miniGameButtonContainer {
-      /* розташована праворуч */
-    }
-    #miniGameBtn {
+    #backBtn {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      padding: 8px 16px;
       background: #007bff;
       color: #fff;
       border: none;
-      padding: 10px 20px;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 1em;
-      transition: background 0.3s;
-    }
-    #miniGameBtn:hover {
-      background: #0056b3;
-    }
-    /* Форма бронювання */
-    .booking-form {
-      background: #fff;
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      max-width: 500px;
-      margin: 0 auto 30px auto;
-    }
-    .booking-form input,
-    .booking-form select,
-    .booking-form button {
-      width: 100%;
-      padding: 12px;
-      margin: 10px 0;
-      font-size: 1em;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-    }
-    .date-time-group {
-      display: flex;
-      gap: 10px;
-    }
-    .date-time-group input,
-    .date-time-group select {
-      flex: 1;
-    }
-    .booking-form button {
-      background: #007bff;
-      color: #fff;
-      border: none;
-      cursor: pointer;
-      transition: background 0.3s;
-    }
-    .booking-form button:hover {
-      background: #0056b3;
-    }
-    /* Кнопки скасування бронювання */
-    .cancelBtn {
-      padding: 5px 10px;
-      background: #d32f2f;
-      color: #fff;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      transition: background 0.3s;
-      font-size: 0.9em;
-      margin-left: 10px;
-    }
-    .cancelBtn:hover {
-      background: #b71c1c;
-    }
-    /* VIP банер */
-    #vipBanner {
-      background: linear-gradient(90deg, #ff9a9e, #fad0c4);
-      color: #fff;
-      padding: 10px;
-      border-radius: 8px;
-      text-align: center;
-      margin-bottom: 15px;
-      display: none;
-      font-weight: bold;
-      font-size: 16px;
-    }
-    /* Черга та бронювання */
-    .queue-container {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 20px;
-    }
-    .queue-box {
-      background: #fff;
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      flex: 1;
-      min-width: 300px;
-    }
-    .queue-box h3 {
-      margin-top: 0;
-      color: #333;
-    }
-    .queue-box ul {
-      list-style: none;
-      padding: 0;
-    }
-    .queue-box li {
-      padding: 8px;
-      border-bottom: 1px solid #eee;
-    }
-    /* Прогрес-бар */
-    .progress-bar {
-      background: #ddd;
-      border-radius: 4px;
-      overflow: hidden;
-      height: 20px;
-      margin-top: 10px;
-    }
-    .progress {
-      background: #4caf50;
-      height: 100%;
-      width: 0%;
-      transition: width 1s linear;
-    }
-    .confirm-btn {
-      background: #ff9800;
-      color: #fff;
-      border: none;
-      border-radius: 4px;
-      padding: 10px;
-      cursor: pointer;
-      transition: background 0.3s;
-      margin-top: 10px;
-    }
-    .confirm-btn:hover {
-      background: #e68900;
-    }
-    /* Лідери */
-    #leaderboardContainer {
-      background: #fff;
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      margin-top: 30px;
-    }
-    #leaderboardContainer h3 {
-      margin-top: 0;
-      font-size: 1.8em;
-      color: #333;
-    }
-    #leaderboardTable {
-      width: 100%;
-      border-collapse: collapse;
-    }
-    #leaderboardTable th, #leaderboardTable td {
-      padding: 10px;
-      border: 1px solid #eee;
-      text-align: center;
-    }
-    #leaderboardTable th {
-      background: #f0f0f0;
-    }
-    .leader-first { font-size: 18px; color: #FFD700; font-weight: bold; }
-    .leader-second { font-size: 16px; color: #C0C0C0; font-weight: bold; }
-    .leader-third { font-size: 14px; color: #CD7F32; font-weight: bold; }
-    /* Чат */
-    .chat-container {
-      background: #fff;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      padding: 20px;
-      margin-top: 30px;
-    }
-    .chat-container h3 {
-      margin-top: 0;
-      color: #333;
-    }
-    #chatPanel {
-      height: 200px;
-      overflow-y: auto;
-      border: 1px solid #eee;
-      padding: 10px;
-      background: #fafafa;
-      border-radius: 6px;
-    }
-    #chatInput {
-      width: 100%;
-      padding: 10px;
-      margin-top: 10px;
-      font-size: 1em;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-    }
-    #sendChatBtn {
-      margin-top: 10px;
-      padding: 10px;
-      width: 100%;
-      background: #007bff;
-      color: #fff;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      transition: background 0.3s;
-    }
-    #sendChatBtn:hover {
-      background: #0056b3;
-    }
-    #chatWarning {
-      margin-top: 10px;
-      color: #d32f2f;
-      font-size: 0.9em;
-    }
-    /* Віртуальна душова кімната */
-    .virtual-shower-room {
-      margin-top: 30px;
-      background: rgba(0,150,255,0.1);
-      border-radius: 12px;
-      padding: 20px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      animation: waterBackground 5s infinite;
-    }
-    @keyframes waterBackground {
-      0% { background: rgba(0,150,255,0.1); }
-      50% { background: rgba(0,150,255,0.3); }
-      100% { background: rgba(0,150,255,0.1); }
-    }
-    .virtual-shower-room h2 {
-      text-align: center;
-      color: #007bff;
-    }
-    .avatar-container {
-      text-align: center;
-      margin: 20px 0;
-    }
-    .avatar {
-      display: inline-block;
-      width: 50px;
-      height: 50px;
-      border-radius: 50%;
-      background-color: #03A9F4;
-      margin: 5px;
-      animation: float 3s ease-in-out infinite;
-    }
-    @keyframes float {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-10px); }
-    }
-    .poll-section {
-      text-align: center;
-      margin: 20px 0;
-    }
-    .poll-section button {
-      margin: 5px;
-      padding: 8px 12px;
-      background-color: #1e1e1e;
-      color: #f0f0f0;
-      border: 1px solid #444;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-    .poll-section button:hover {
-      background-color: #333;
-    }
-    #pollResults {
-      margin-top: 10px;
-      font-size: 1em;
-      color: #ffeb3b;
-    }
-    /* Блок для пісень: кнопки для відтворення та голосування */
-    .song-section {
-      text-align: center;
-      margin: 20px 0;
-    }
-    .song-section button {
-      margin: 5px;
-      padding: 8px 12px;
-      background: #1e1e1e;
-      color: #f0f0f0;
-      border: 1px solid #444;
-      border-radius: 4px;
-      cursor: pointer;
-      transition: background 0.3s;
-    }
-    .song-section button:hover {
-      background: #333;
-    }
-    .vote-section {
-      text-align: center;
-      margin: 10px 0;
-    }
-    .vote-section span {
-      margin: 0 10px;
-      font-size: 1.1em;
-      color: #ffeb3b;
-    }
-    /* Кнопка "Оновити" для водяного ефекту */
-    #refreshBtn {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      background: #1e1e1e;
-      color: #f0f0f0;
-      border: none;
-      padding: 10px 15px;
       border-radius: 4px;
       cursor: pointer;
       z-index: 1000;
     }
-    #refreshBtn:hover {
-      background: #333;
-    }
-    @keyframes waterRipple {
-      0% { opacity: 0; transform: scale(0.5); }
-      50% { opacity: 0.5; transform: scale(1.0); }
-      100% { opacity: 0; transform: scale(1.5); }
-    }
-    .water-animation {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0,150,255,0.3);
-      pointer-events: none;
-      animation: waterRipple 1s ease-out;
-      z-index: 999;
-    }
-    /* Сховані елементи для пісень (HTML5 audio) */
-    .hidden-audio {
-      display: none;
+    #backBtn:hover {
+      background: #0056b3;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <!-- Заголовок і кнопка міні-гри (Shower Dash) праворуч -->
-    <div class="header-row">
-      <h1>Електронна черга в душ</h1>
-      <div id="miniGameButtonContainer">
-        <button id="miniGameBtn" onclick="openGameWindow()">Міні-гра</button>
-      </div>
-    </div>
+  <button id="backBtn">Назад</button>
+  <canvas id="gameCanvas" width="400" height="600"></canvas>
+  <div id="scoreDisplay">Score: 0</div>
 
-    <!-- Форма бронювання -->
-    <div class="booking-form">
-      <div id="vipBanner"></div>
-      <input type="text" id="userName" placeholder="Введіть своє ім'я">
-      <div class="date-time-group">
-        <input type="date" id="reservationDate">
-        <input type="time" id="reservationTime">
-        <select id="extraTime">
-          <option value="0">Базові 15 хв</option>
-          <option value="5">+5 хв (20 хвилин)</option>
-          <option value="10">+10 хв (25 хвилин)</option>
-        </select>
-      </div>
-      <button id="bookBtn">Забронювати</button>
-    </div>
-
-    <!-- Черга бронювань та поточне бронювання -->
-    <div class="queue-container">
-      <div class="queue-box" id="currentReservationBox">
-        <h3>Зараз миється:</h3>
-        <div id="currentReservation">Душ вільний!</div>
-        <div class="progress-bar">
-          <div class="progress" id="progressBar"></div>
-        </div>
-        <div id="confirmContainer"></div>
-      </div>
-      <div class="queue-box" id="reservationQueueBox">
-        <h3>Черга бронювань (5 актуальних)</h3>
-        <ul id="reservationQueue"></ul>
-      </div>
-    </div>
-
-    <!-- Лідери бронювань -->
-    <div id="leaderboardContainer">
-      <h3>Лідери бронювань</h3>
-      <table id="leaderboardTable">
-        <thead>
-          <tr>
-            <th>Місце</th>
-            <th>Ім'я</th>
-            <th>Бали</th>
-          </tr>
-        </thead>
-        <tbody id="leaderboardBody"></tbody>
-      </table>
-    </div>
-
-    <!-- Міні чат -->
-    <div class="chat-container">
-      <h3>Міні чат</h3>
-      <div id="chatPanel"></div>
-      <input type="text" id="chatInput" placeholder="Тільки учасники бронювання можуть писати" disabled>
-      <button id="sendChatBtn">Надіслати</button>
-      <div id="chatWarning" style="display:none;">Ви не забронювали!</div>
-    </div>
-
-    <!-- Віртуальна душова кімната -->
-    <div class="virtual-shower-room" id="virtualShowerRoom">
-      <h2>Віртуальна душова кімната</h2>
-      <div class="avatar-container" id="avatarContainer">
-        <div class="avatar"></div>
-        <div class="avatar"></div>
-        <div class="avatar"></div>
-      </div>
-      <div class="poll-section" id="pollSection">
-        <h3>Яка пісня ідеально підходить для душу?</h3>
-        <!-- Кнопки для відтворення пісень -->
-        <div class="song-section">
-          <button onclick="toggleSong('audio1')">Пісня 1</button>
-          <button onclick="toggleSong('audio2')">Пісня 2</button>
-          <button onclick="toggleSong('audio3')">Пісня 3</button>
-        </div>
-        <!-- Кнопки голосування та відображення статистики -->
-        <div class="vote-section">
-          <button onclick="voteSong('song1')">Голосувати Пісня 1</button>
-          <button onclick="voteSong('song2')">Голосувати Пісня 2</button>
-          <button onclick="voteSong('song3')">Голосувати Пісня 3</button>
-          <div id="voteStats">
-            <span id="vote_song1">Пісня 1: 0</span>
-            <span id="vote_song2">Пісня 2: 0</span>
-            <span id="vote_song3">Пісня 3: 0</span>
-          </div>
-        </div>
-        <div id="pollResults"></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Кнопка "Оновити" для водяного ефекту -->
-  <button id="refreshBtn" onclick="showWaterAnimation()">Оновити</button>
-
-  <!-- Сховані HTML5 аудіоелементи для пісень -->
-  <div class="hidden-audio">
-    <audio id="audio1" src="path/to/song1.mp3"></audio>
-    <audio id="audio2" src="path/to/song2.mp3"></audio>
-    <audio id="audio3" src="path/to/song3.mp3"></audio>
-  </div>
-
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
   <script>
-    /***** Firebase Configuration *****/
-    var firebaseConfig = {
-      apiKey: "AIzaSyBgpL3-TVnAzVvGP4AGcPmzYOjTvU9G3P4",
-      authDomain: "toiletqueue-be126.firebaseapp.com",
-      databaseURL: "https://toiletqueue-be126-default-rtdb.europe-west1.firebasedatabase.app/",
-      projectId: "toiletqueue-be126",
-      storageBucket: "toiletqueue-be126.firebasestorage.app",
-      messagingSenderId: "391582777538",
-      appId: "1:391582777538:web:da61462bf4a65954f6fb5b"
+    // Отримання елементів
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    const scoreDisplay = document.getElementById("scoreDisplay");
+    const backBtn = document.getElementById("backBtn");
+
+    // Подія для кнопки "Назад" – закриває вікно
+    backBtn.addEventListener("click", () => {
+      window.close();
+    });
+
+    // Глобальні змінні
+    let score = 0;
+    let gameOver = false;
+    const player = {
+      x: canvas.width / 2 - 15,
+      y: canvas.height - 60,
+      width: 30,
+      height: 30,
+      speed: 5,
+      dx: 0,
+      dy: 0
     };
-    firebase.initializeApp(firebaseConfig);
-    var db = firebase.database();
 
-    /***** Глобальні змінні для бронювання *****/
-    var reservationsRef = db.ref("showerReservations");
-    var leaderboardRef = db.ref("showerLeaderboard");
-    var chatRef = db.ref("showerChat");
-    var currentReservations = []; // бронювання з дозволених дат
-    var currentReservation = null; // бронювання для сьогодні
-    var prevActiveBooking = null;  // для фіксації активного бронювання
+    let bonuses = [];   // масив бонусів (краплі води та бульбашки)
+    let obstacles = []; // масив перешкод
 
-    /***** Allowed Dates: сьогодні, завтра, післязавтра *****/
-    function getAllowedDates() {
-      var allowed = [];
-      var todayObj = new Date();
-      allowed.push(todayObj.toISOString().split("T")[0]);
-      var tomorrowObj = new Date(todayObj);
-      tomorrowObj.setDate(tomorrowObj.getDate() + 1);
-      allowed.push(tomorrowObj.toISOString().split("T")[0]);
-      var dayAfterObj = new Date(todayObj);
-      dayAfterObj.setDate(dayAfterObj.getDate() + 2);
-      allowed.push(dayAfterObj.toISOString().split("T")[0]);
-      return allowed;
+    // Налаштування появи бонусів та перешкод (в мілісекундах)
+    const bonusSpawnInterval = 1500;
+    const obstacleSpawnInterval = 2500;
+
+    // Функції малювання
+    function drawPlayer() {
+      ctx.fillStyle = "#00BCD4"; // колір персонажа
+      ctx.fillRect(player.x, player.y, player.width, player.height);
     }
 
-    /***** Автоматичне встановлення дати та часу в полях бронювання *****/
-    window.addEventListener("load", function(){
-      var now = new Date();
-      var yyyy = now.getFullYear();
-      var mm = ("0" + (now.getMonth()+1)).slice(-2);
-      var dd = ("0" + now.getDate()).slice(-2);
-      document.getElementById("reservationDate").value = yyyy + "-" + mm + "-" + dd;
-      var hh = ("0" + now.getHours()).slice(-2);
-      var min = ("0" + now.getMinutes()).slice(-2);
-      document.getElementById("reservationTime").value = hh + ":" + min;
-    });
-
-    /***** Функції бронювання *****/
-    document.getElementById("bookBtn").addEventListener("click", function() {
-      var nameInput = document.getElementById("userName").value.trim();
-      var date = document.getElementById("reservationDate").value;
-      var time = document.getElementById("reservationTime").value;
-      var extra = parseInt(document.getElementById("extraTime").value);
-      if (!nameInput || !date || !time) {
-         alert("Будь ласка, введіть ім'я та підтвердіть дату й час бронювання!");
-         return;
-      }
-      var allowedDates = getAllowedDates();
-      if (allowedDates.indexOf(date) === -1) {
-         alert("Можна бронювати лише на сьогодні, завтра та післязавтра!");
-         return;
-      }
-      var normalizedName = nameInput.toLowerCase();
-      var existingBooking = localStorage.getItem("userBooking_" + date);
-      if (existingBooking) {
-         var bookingObj = JSON.parse(existingBooking);
-         if (bookingObj.name.toLowerCase() === normalizedName) {
-            alert("Такий користувач вже забронював для цієї дати!");
-            return;
-         }
-      }
-      var bookingCount = 0;
-      allowedDates.forEach(function(d) {
-         var bStr = localStorage.getItem("userBooking_" + d);
-         if (bStr) {
-            var bObj = JSON.parse(bStr);
-            if (bObj.name.toLowerCase() === normalizedName) {
-               bookingCount++;
-            }
-         }
+    function drawBonuses() {
+      bonuses.forEach(bonus => {
+        ctx.fillStyle = bonus.type === "water" ? "#03A9F4" : "#E0F7FA";
+        ctx.beginPath();
+        ctx.arc(bonus.x, bonus.y, bonus.radius, 0, Math.PI * 2);
+        ctx.fill();
       });
-      if (!localStorage.getItem("userBooking_" + date) && bookingCount >= 3) {
-         alert("Ви можете забронювати максимум на 3 дні!");
-         return;
+    }
+
+    function drawObstacles() {
+      obstacles.forEach(obs => {
+        ctx.fillStyle = "#FF5722";
+        ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
+      });
+    }
+
+    // Функції руху
+    function movePlayer() {
+      player.x += player.dx;
+      player.y += player.dy;
+      // Обмеження за межами canvas
+      if (player.x < 0) player.x = 0;
+      if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
+      if (player.y < 0) player.y = 0;
+      if (player.y + player.height > canvas.height) player.y = canvas.height - player.height;
+    }
+
+    function updateBonuses() {
+      bonuses.forEach(bonus => {
+        bonus.y += bonus.speed;
+      });
+      // Видаляємо бонуси, що вийшли за межі
+      bonuses = bonuses.filter(bonus => bonus.y - bonus.radius < canvas.height);
+    }
+
+    function updateObstacles() {
+      obstacles.forEach(obs => {
+        obs.y += obs.speed;
+      });
+      obstacles = obstacles.filter(obs => obs.y < canvas.height);
+    }
+
+    // Функції зіткнень
+    function rectCircleColliding(rect, circle) {
+      const distX = Math.abs(circle.x - rect.x - rect.width / 2);
+      const distY = Math.abs(circle.y - rect.y - rect.height / 2);
+
+      if (distX > (rect.width / 2 + circle.radius)) return false;
+      if (distY > (rect.height / 2 + circle.radius)) return false;
+
+      if (distX <= (rect.width / 2)) return true;
+      if (distY <= (rect.height / 2)) return true;
+
+      const dx = distX - rect.width / 2;
+      const dy = distY - rect.height / 2;
+      return (dx * dx + dy * dy <= (circle.radius * circle.radius));
+    }
+
+    function rectRectCollision(r1, r2) {
+      return r1.x < r2.x + r2.width &&
+             r1.x + r1.width > r2.x &&
+             r1.y < r2.y + r2.height &&
+             r1.y + r1.height > r2.y;
+    }
+
+    function checkCollisions() {
+      // Перевірка збору бонусів
+      bonuses.forEach((bonus, index) => {
+        if (rectCircleColliding(player, bonus)) {
+          score += 10;
+          bonuses.splice(index, 1);
+        }
+      });
+      // Перевірка зіткнення з перешкодами
+      obstacles.forEach(obs => {
+        if (rectRectCollision(player, obs)) {
+          gameOver = true;
+        }
+      });
+    }
+
+    function updateScore() {
+      scoreDisplay.innerText = "Score: " + score;
+    }
+
+    function clearCanvas() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    // Ігровий цикл
+    function gameLoop() {
+      if (gameOver) {
+        alert("Game Over! Your score: " + score);
+        window.location.reload();
+        return;
       }
-      var reservedTime = 15 + extra;
-      var scheduledStart = new Date(date + "T" + time + ":00").getTime();
-      var reservation = {
-         name: nameInput,
-         normalizedName: normalizedName,
-         reservedTime: reservedTime,
-         scheduledStart: scheduledStart,
-         date: date,
-         confirmed: false
+      clearCanvas();
+      drawPlayer();
+      drawBonuses();
+      drawObstacles();
+      movePlayer();
+      updateBonuses();
+      updateObstacles();
+      checkCollisions();
+      updateScore();
+      requestAnimationFrame(gameLoop);
+    }
+
+    // Спавн бонусів
+    setInterval(function() {
+      let bonus = {
+        x: Math.random() * canvas.width,
+        y: -10,
+        radius: 8,
+        speed: 3,
+        type: Math.random() < 0.5 ? "water" : "bubble"
       };
-      reservationsRef.child(date).update({ [normalizedName]: reservation });
-      localStorage.setItem("userBooking_" + date, JSON.stringify({ name: nameInput, date: date }));
-      localStorage.setItem("userName", normalizedName);
-      alert("Бронювання підтверджено!");
-    });
+      bonuses.push(bonus);
+    }, bonusSpawnInterval);
 
-    /***** Отримання бронювань для дозволених дат *****/
-    function updateAllBookings() {
-      currentReservations = [];
-      var allowedDates = getAllowedDates();
-      var remaining = allowedDates.length;
-      allowedDates.forEach(function(date) {
-         reservationsRef.child(date).once("value").then(function(snapshot) {
-            var data = snapshot.val() || {};
-            for (var key in data) {
-               currentReservations.push(data[key]);
-            }
-            remaining--;
-            if (remaining === 0) {
-               currentReservations.sort(function(a, b) {
-                  return a.scheduledStart - b.scheduledStart;
-               });
-               updateQueueDisplay();
-            }
-         });
-      });
-    }
-    setInterval(updateAllBookings, 5000);
-    updateAllBookings();
-
-    /***** Вивід черги бронювань (5 актуальних) *****/
-    function updateQueueDisplay() {
-      var queueList = document.getElementById("reservationQueue");
-      queueList.innerHTML = "";
-      var bookingsToShow = currentReservations.slice(0, 5);
-      var monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-      if (bookingsToShow.length === 0) {
-         var li = document.createElement("li");
-         li.textContent = "Черга порожня!";
-         li.style.textAlign = "center";
-         queueList.appendChild(li);
-      } else {
-         bookingsToShow.forEach(function(res, index) {
-            var li = document.createElement("li");
-            var d = new Date(res.scheduledStart);
-            var dayStr = (d.getDate() < 10 ? "0" : "") + d.getDate();
-            var monthStr = monthNames[d.getMonth()];
-            var hh = (d.getHours() < 10 ? "0" : "") + d.getHours();
-            var mm = (d.getMinutes() < 10 ? "0" : "") + d.getMinutes();
-            var formattedTime = dayStr + " " + monthStr + ", " + hh + ":" + mm;
-            li.innerHTML = "<strong>" + (index + 1) + ".</strong> " + formattedTime + " - " + res.name;
-            var currentUser = localStorage.getItem("userName");
-            if (currentUser && res.normalizedName === currentUser) {
-               var cancelBtn = document.createElement("button");
-               cancelBtn.className = "cancelBtn";
-               cancelBtn.innerText = "Скасувати (" + res.date + ")";
-               cancelBtn.onclick = function() {
-                  cancelBooking(res.date, res.normalizedName);
-               };
-               li.appendChild(cancelBtn);
-            }
-            queueList.appendChild(li);
-         });
-      }
-    }
-
-    /***** Функція скасування бронювання *****/
-    function cancelBooking(bookingDate, normalizedName) {
-      reservationsRef.child(bookingDate).child(normalizedName).remove(function(error) {
-         if (error) {
-            alert("Помилка скасування бронювання");
-         } else {
-            alert("Бронювання на " + bookingDate + " скасовано");
-            localStorage.removeItem("userBooking_" + bookingDate);
-            updateAllBookings();
-         }
-      });
-    }
-
-    /***** Поточне бронювання (для сьогодні) *****/
-    let prevActiveBooking = null;
-    function updateCurrentReservation() {
-      var now = Date.now();
-      var todayStrLocal = new Date().toISOString().split("T")[0];
-      var todayBookings = currentReservations.filter(function(res) {
-         return res.date === todayStrLocal;
-      });
-      todayBookings.sort(function(a, b) {
-         return a.scheduledStart - b.scheduledStart;
-      });
-      var activeBooking = null;
-      for (var i = 0; i < todayBookings.length; i++) {
-         var res = todayBookings[i];
-         var endTime = res.scheduledStart + res.reservedTime * 60 * 1000;
-         if (now >= res.scheduledStart && now < endTime) {
-            activeBooking = res;
-            break;
-         }
-      }
-      if (prevActiveBooking && activeBooking && prevActiveBooking.normalizedName === activeBooking.normalizedName) {
-         return;
-      }
-      prevActiveBooking = activeBooking;
-      currentReservation = activeBooking;
-      
-      var currentDiv = document.getElementById("currentReservation");
-      if (activeBooking) {
-         var elapsed = now - activeBooking.scheduledStart;
-         var total = activeBooking.reservedTime * 60 * 1000;
-         var remainingTime = total - elapsed;
-         var minutesRemaining = Math.floor(remainingTime / 60000);
-         var secondsRemaining = Math.floor((remainingTime % 60000) / 1000);
-         currentDiv.textContent = "Зараз миється: " + activeBooking.name + " (" + minutesRemaining + " хв " + (secondsRemaining < 10 ? "0" : "") + secondsRemaining + " сек залишилося)";
-         var percent = Math.min(100, (elapsed / total) * 100);
-         document.getElementById("progressBar").style.width = percent + "%";
-         if (!activeBooking.confirmed && (total - elapsed <= 5 * 60 * 1000)) {
-            document.getElementById("confirmContainer").innerHTML = '<button class="confirm-btn" onclick="confirmReservation()">Підтвердити візит</button>';
-         } else {
-            document.getElementById("confirmContainer").innerHTML = "";
-         }
-      } else {
-         currentDiv.textContent = "Душ вільний!";
-         document.getElementById("progressBar").style.width = "0%";
-         document.getElementById("confirmContainer").innerHTML = "";
-      }
-    }
-    setInterval(updateCurrentReservation, 1000);
-
-    function confirmReservation() {
-      if (!currentReservation) return;
-      reservationsRef.child(currentReservation.date).child(currentReservation.normalizedName).update({ confirmed: true });
-      alert("Візит підтверджено!");
-    }
-
-    /***** Лідери *****/
-    function updateLeaderboard() {
-      var leaderboardData = {};
-      currentReservations.forEach(function(res) {
-         leaderboardData[res.normalizedName] = (leaderboardData[res.normalizedName] || 0) + 1;
-      });
-      var todayStrLocal = new Date().toISOString().split("T")[0];
-      leaderboardRef.child(todayStrLocal).set(leaderboardData);
-      updateLeaderboardDisplay();
-    }
-    function updateLeaderboardDisplay() {
-      var todayStrLocal = new Date().toISOString().split("T")[0];
-      leaderboardRef.child(todayStrLocal).once("value").then(function(snapshot) {
-         var data = snapshot.val() || {};
-         var entries = [];
-         for (var key in data) {
-            entries.push({ name: key, score: data[key] });
-         }
-         entries.sort(function(a, b) { return b.score - a.score; });
-         var tbody = document.getElementById("leaderboardBody");
-         tbody.innerHTML = "";
-         entries.slice(0, 5).forEach(function(entry, index) {
-            var tr = document.createElement("tr");
-            if (index === 0) tr.classList.add("leader-first");
-            else if (index === 1) tr.classList.add("leader-second");
-            else if (index === 2) tr.classList.add("leader-third");
-            var tdRank = document.createElement("td");
-            tdRank.innerText = index + 1;
-            var tdName = document.createElement("td");
-            tdName.innerText = entry.name;
-            var tdScore = document.createElement("td");
-            tdScore.innerText = entry.score;
-            tr.appendChild(tdRank);
-            tr.appendChild(tdName);
-            tr.appendChild(tdScore);
-            tbody.appendChild(tr);
-         });
-      });
-    }
-
-    /***** VIP *****/
-    function updateVIPBanner() {
-      var vipBanner = document.getElementById("vipBanner");
-      var name = localStorage.getItem("userName");
-      if (name && name.toLowerCase() === "начальник") {
-         vipBanner.style.display = "block";
-         vipBanner.innerText = "Вітаємо, VIP! Ви маєте пріоритетний доступ та особливі привілеї!";
-      } else {
-         vipBanner.style.display = "none";
-      }
-    }
-
-    /***** Чат *****/
-    document.getElementById("chatInput").addEventListener("keydown", function(e) {
-      if (e.key === "Enter") {
-         e.preventDefault();
-         sendChat();
-      }
-    });
-    document.getElementById("sendChatBtn").addEventListener("click", sendChat);
-    chatRef.on("child_added", function(snapshot) {
-         var message = snapshot.val();
-         displayChatMessage(message);
-    });
-    function displayChatMessage(message) {
-      var chatPanel = document.getElementById("chatPanel");
-      var div = document.createElement("div");
-      div.className = "chat-message";
-      div.innerHTML = "<span>" + message.name + ":</span> " + message.text;
-      chatPanel.appendChild(div);
-      chatPanel.scrollTop = chatPanel.scrollHeight;
-    }
-    function sendChat() {
-      var chatInput = document.getElementById("chatInput");
-      var text = chatInput.value.trim();
-      var currentUser = localStorage.getItem("userName");
-      if (!currentUser || !isUserInQueue(currentUser)) {
-         alert("Для написання повідомлень потрібно бути в бронюванні!");
-         return;
-      }
-      if (!text) return;
-      var message = {
-         name: currentUser,
-         text: text,
-         timestamp: Date.now()
+    // Спавн перешкод
+    setInterval(function() {
+      let obstacle = {
+        x: Math.random() * (canvas.width - 30),
+        y: -30,
+        width: 30,
+        height: 30,
+        speed: 4
       };
-      chatRef.push(message);
-      chatInput.value = "";
-    }
-    function isUserInQueue(userName) {
-      return currentReservations.some(function(res) {
-         return res.normalizedName === userName;
-      });
-    }
-    function updateChatPermission() {
-      var currentUser = localStorage.getItem("userName");
-      var chatInput = document.getElementById("chatInput");
-      var chatWarning = document.getElementById("chatWarning");
-      if (currentUser && isUserInQueue(currentUser)) {
-         chatInput.disabled = false;
-         chatInput.placeholder = "Ваше повідомлення";
-         chatWarning.style.display = "none";
-      } else {
-         chatInput.disabled = true;
-         chatInput.placeholder = "Тільки учасники бронювання можуть писати";
-         chatWarning.style.display = "block";
-         chatWarning.innerText = "Ви не забронювали!";
+      obstacles.push(obstacle);
+    }, obstacleSpawnInterval);
+
+    // Обробка клавіш для керування персонажем
+    document.addEventListener("keydown", function(e) {
+      if (e.key === "ArrowLeft") {
+        player.dx = -player.speed;
+      } else if (e.key === "ArrowRight") {
+        player.dx = player.speed;
+      } else if (e.key === "ArrowUp") {
+        player.dy = -player.speed;
+      } else if (e.key === "ArrowDown") {
+        player.dy = player.speed;
       }
-    }
+    });
 
-    /***** Кнопка міні-гри (Shower Dash) - завжди активна, відкривається у новому вікні *****/
-    function openGameWindow() {
-      window.open("shower-dash.html", "_blank", "width=420,height=700");
-    }
-    document.getElementById("miniGameBtn").addEventListener("click", openGameWindow);
-
-    /***** Функції для віртуальної душової кімнати та опитування *****/
-    function vote(option) {
-      var pollResults = document.getElementById("pollResults");
-      pollResults.innerText = "Ви обрали: " + option;
-      // Відтворення пісні: викликаємо toggleSong, яка перемикає стан відтворення
-      toggleSong("audio_" + option);
-    }
-
-    /***** Функція для відтворення пісень (HTML5 Audio) з можливістю зупинки при повторному натисканні *****/
-    function toggleSong(audioId) {
-      var audio = document.getElementById(audioId);
-      if (audio.paused) {
-         audio.play();
-      } else {
-         audio.pause();
-         audio.currentTime = 0;
+    document.addEventListener("keyup", function(e) {
+      if (["ArrowLeft", "ArrowRight"].includes(e.key)) {
+        player.dx = 0;
       }
-    }
+      if (["ArrowUp", "ArrowDown"].includes(e.key)) {
+        player.dy = 0;
+      }
+    });
 
-    /***** Голосування за пісню та статистика *****/
-    var voteCounts = {
-      song1: 0,
-      song2: 0,
-      song3: 0
-    };
-    function voteSong(songId) {
-      voteCounts[songId]++;
-      updateVoteStats();
-    }
-    function updateVoteStats() {
-      document.getElementById("vote_song1").innerText = "Пісня 1: " + voteCounts.song1;
-      document.getElementById("vote_song2").innerText = "Пісня 2: " + voteCounts.song2;
-      document.getElementById("vote_song3").innerText = "Пісня 3: " + voteCounts.song3;
-    }
-
-    /***** Кнопка "Оновити" для водяного ефекту *****/
-    function showWaterAnimation() {
-      var anim = document.createElement("div");
-      anim.className = "water-animation";
-      document.body.appendChild(anim);
-      setTimeout(function() {
-         document.body.removeChild(anim);
-      }, 1000);
-    }
+    // Запуск ігрового циклу
+    gameLoop();
   </script>
-
-  <!-- HTML5 аудіоелементи для пісень (замість YouTube API) -->
-  <div class="hidden-audio">
-    <audio id="audio_song1" src="path/to/song1.mp3"></audio>
-    <audio id="audio_song2" src="path/to/song2.mp3"></audio>
-    <audio id="audio_song3" src="path/to/song3.mp3"></audio>
-  </div>
 </body>
 </html>
