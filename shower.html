@@ -408,7 +408,7 @@
         alert("Будь ласка, введіть ім'я та підтвердіть дату й час бронювання!");
         return;
       }
-      // Приводимо ім'я до нижнього регістру для унікальності
+      // Приводимо ім'я до нижнього регістру для перевірки унікальності на цю дату
       var normalizedName = nameInput.toLowerCase();
       reservationsRef.child(date).once("value", function(snapshot) {
         var data = snapshot.val() || {};
@@ -418,9 +418,8 @@
         }
         var reservedTime = 15 + extra; // хвилин
         var scheduledStart = new Date(date + "T" + time + ":00").getTime();
-        // Зберігаємо як оригінальне ім'я та нормалізоване для перевірок
         var reservation = {
-          name: nameInput,
+          name: nameInput, 
           normalizedName: normalizedName,
           reservedTime: reservedTime,
           scheduledStart: scheduledStart,
@@ -429,7 +428,8 @@
         var updates = {};
         updates[normalizedName] = reservation;
         reservationsRef.child(date).update(updates);
-        localStorage.setItem("userName", normalizedName);
+        // Зберігаємо оригінальне ім'я для подальших перевірок
+        localStorage.setItem("userName", nameInput);
       });
     });
 
@@ -508,7 +508,7 @@
         document.getElementById("confirmContainer").innerHTML = "";
       }
     }
-    // Оновлення інформації кожну секунду
+    // Оновлення інформації про бронювання кожну секунду
     setInterval(updateCurrentReservation, 1000);
 
     function confirmReservation() {
@@ -544,7 +544,7 @@
           var tdRank = document.createElement("td");
           tdRank.innerText = index + 1;
           var tdName = document.createElement("td");
-          tdName.innerText = entry.name; // тут можна замінити, якщо потрібно відображати оригінальне ім'я
+          tdName.innerText = entry.name;
           var tdScore = document.createElement("td");
           tdScore.innerText = entry.score;
           tr.appendChild(tdRank);
@@ -648,17 +648,17 @@
     }
 
     /***** Міні-гра: Memory Maze *****/
-    // Концепція: На початку рівня показується маршрут лабіринту, який потім гравець має повторити.
+    // Концепція: спочатку показується маршрут лабіринту (демо-фаза), потім гравець має повторити його.
     var memoryMazeLevel = 1;
     var gridSize = 6; // 6x6 лабіринт
     var canvas = document.getElementById("gameCanvas");
     var ctx = canvas.getContext("2d");
-    var cellSize = canvas.width / gridSize; // наприклад, 300/6 = 50px
+    var cellSize = canvas.width / gridSize;
     var memoryMazeRoute = [];
     var playerPosition = null;
     var currentRouteStep = 0;
     var memoryMazePhase = ""; // "demo" або "replication"
-    var demoDuration = 5000; // 5 секунд для показу маршруту
+    var demoDuration = 5000; // 5 секунд показу маршруту
 
     function generateMemoryMazeRoute() {
       var routeLength = memoryMazeLevel + 3;
@@ -691,7 +691,7 @@
         ctx.lineTo(canvas.width, i * cellSize);
         ctx.stroke();
       }
-      // Якщо фаза demo, підсвічуємо маршрут
+      // Якщо demo-фаза, підсвічуємо маршрут
       if (memoryMazePhase === "demo") {
         for (var i = 0; i < memoryMazeRoute.length; i++) {
           var cell = memoryMazeRoute[i];
@@ -703,7 +703,7 @@
       if (playerPosition) {
         ctx.fillStyle = "#FFEB3B";
         ctx.beginPath();
-        ctx.arc(playerPosition.x * cellSize + cellSize/2, playerPosition.y * cellSize + cellSize/2, cellSize/3, 0, 2 * Math.PI);
+        ctx.arc(playerPosition.x * cellSize + cellSize/2, playerPosition.y * cellSize + cellSize/2, cellSize/3, 0, 2*Math.PI);
         ctx.fill();
       }
     }
@@ -727,7 +727,7 @@
       drawMemoryMaze();
     }
 
-    // Обробка клавіш для реплікації маршруту
+    // Обробка клавіш для реплікації маршруту (стрілки)
     document.addEventListener("keydown", function(e) {
       if (memoryMazePhase === "replication") {
         var newX = playerPosition.x;
