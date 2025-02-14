@@ -79,11 +79,7 @@
     .booking-form button:hover {
       background: #0056b3;
     }
-    /* Кнопки скасування бронювання */
-    #cancelBtnContainer {
-      text-align: center;
-      margin-top: 10px;
-    }
+    /* Кнопки скасування бронювання (для кожного запису) */
     .cancelBtn {
       padding: 5px 10px;
       background: #d32f2f;
@@ -92,8 +88,8 @@
       border-radius: 4px;
       cursor: pointer;
       transition: background 0.3s;
-      margin-left: 10px;
       font-size: 0.9em;
+      margin-left: 10px;
     }
     .cancelBtn:hover {
       background: #b71c1c;
@@ -136,7 +132,6 @@
       padding: 8px;
       border-bottom: 1px solid #eee;
     }
-    /* Формат запису у черзі: "1. 14 Feb, 14:00 - Імʼя" */
     /* Прогрес-бар */
     .progress-bar {
       background: #ddd;
@@ -305,7 +300,7 @@
       <button id="bookBtn">Забронювати</button>
     </div>
 
-    <!-- Черга та поточне бронювання -->
+    <!-- Черга бронювань та поточне бронювання -->
     <div class="queue-container">
       <div class="queue-box" id="currentReservationBox">
         <h3>Зараз миється:</h3>
@@ -316,7 +311,7 @@
         <div id="confirmContainer"></div>
       </div>
       <div class="queue-box" id="reservationQueueBox">
-        <h3>Черга бронювань</h3>
+        <h3>Черга бронювань (5 актуальних)</h3>
         <ul id="reservationQueue"></ul>
       </div>
     </div>
@@ -359,7 +354,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
   <script>
     /***** Firebase Configuration *****/
-    // Замініть ці дані на свої з Firebase Console
+    // Замість цих даних використовуйте свої власні з Firebase Console
     var firebaseConfig = {
       apiKey: "AIzaSyBgpL3-TVnAzVvGP4AGcPmzYOjTvU9G3P4",
       authDomain: "toiletqueue-be126.firebaseapp.com",
@@ -376,19 +371,23 @@
     var reservationsRef = db.ref("showerReservations");
     var leaderboardRef = db.ref("showerLeaderboard");
     var chatRef = db.ref("showerChat");
-    var currentReservations = [];
-    var currentReservation = null;
+    var currentReservations = []; // містить бронювання з дозволених дат
+    var currentReservation = null; // бронювання для сьогодні
     var miniGameDuration = 33; // секунд для Memory Maze
-    var memoryMazeLevel = 1;
-    var gridSize = 6; // 6x6 лабіринт
-    var canvas = document.getElementById("gameCanvas");
-    var ctx = canvas.getContext("2d");
-    var cellSize = canvas.width / gridSize;
-    var memoryMazeRoute = [];
-    var playerPosition = null;
-    var currentRouteStep = 0;
-    var memoryMazePhase = ""; // "demo" або "replication"
-    var demoDuration = 5000; // 5 секунд для показу маршруту
+
+    /***** Allowed Dates: сьогодні, завтра, післязавтра *****/
+    function getAllowedDates() {
+      var allowed = [];
+      var todayObj = new Date();
+      allowed.push(todayObj.toISOString().split("T")[0]);
+      var tomorrowObj = new Date(todayObj);
+      tomorrowObj.setDate(tomorrowObj.getDate() + 1);
+      allowed.push(tomorrowObj.toISOString().split("T")[0]);
+      var dayAfterObj = new Date(todayObj);
+      dayAfterObj.setDate(dayAfterObj.getDate() + 2);
+      allowed.push(dayAfterObj.toISOString().split("T")[0]);
+      return allowed;
+    }
 
     /***** Автоматичне встановлення дати та часу *****/
     window.addEventListener("load", function(){
@@ -409,27 +408,18 @@
       var time = document.getElementById("reservationTime").value;
       var extra = parseInt(document.getElementById("extraTime").value);
       if (!nameInput || !date || !time) {
-        alert("Будь ласка, введіть ім'я та підтвердіть дату й час бронювання!");
-        return;
+         alert("Будь ласка, введіть ім'я та підтвердіть дату й час бронювання!");
+         return;
       }
-      // Обмеження: можна бронювати лише на сьогодні, завтра та післязавтра.
-      var allowedDates = [];
-      var todayObj = new Date();
-      var todayStrLocal = todayObj.toISOString().split("T")[0];
-      allowedDates.push(todayStrLocal);
-      var tomorrowObj = new Date(todayObj);
-      tomorrowObj.setDate(tomorrowObj.getDate() + 1);
-      allowedDates.push(tomorrowObj.toISOString().split("T")[0]);
-      var dayAfterObj = new Date(todayObj);
-      dayAfterObj.setDate(dayAfterObj.getDate() + 2);
-      allowedDates.push(dayAfterObj.toISOString().split("T")[0]);
+      // Перевірка: дозволені дати
+      var allowedDates = getAllowedDates();
       if (allowedDates.indexOf(date) === -1) {
          alert("Можна бронювати лише на сьогодні, завтра та післязавтра!");
          return;
       }
       // Приводимо ім'я до нижнього регістру для перевірки унікальності для цієї дати
       var normalizedName = nameInput.toLowerCase();
-      // Перевірка локально для цієї дати
+      // Перевірка локально для цієї дати (ключ: "userBooking_<date>")
       var existingBooking = localStorage.getItem("userBooking_" + date);
       if (existingBooking) {
          var bookingObj = JSON.parse(existingBooking);
@@ -438,17 +428,17 @@
             return;
          }
       }
-      // Перевірка: якщо користувач вже має бронювання на 3 дні і ця дата не входить, то відхиляємо
+      // Перевірка: користувач може бронювати максимум на 3 дні
       var bookingCount = 0;
       allowedDates.forEach(function(d) {
-         var bStr = localStorage.getItem("userBooking_" + d);
-         if (bStr) {
-            var bObj = JSON.parse(bStr);
+         if (localStorage.getItem("userBooking_" + d)) {
+            var bObj = JSON.parse(localStorage.getItem("userBooking_" + d));
             if (bObj.name.toLowerCase() === normalizedName) {
                bookingCount++;
             }
          }
       });
+      // Якщо для цієї дати ще немає бронювання, а користувач вже має бронювання на 3 дні, відхиляємо
       if (!localStorage.getItem("userBooking_" + date) && bookingCount >= 3) {
          alert("Ви можете забронювати максимум на 3 дні!");
          return;
@@ -463,25 +453,19 @@
          date: date,
          confirmed: false
       };
-      var updates = {};
-      updates[normalizedName] = reservation;
-      reservationsRef.child(date).update(updates);
+      // Записуємо бронювання у Firebase під вузлом для цієї дати
+      reservationsRef.child(date).update({ [normalizedName]: reservation });
+      // Зберігаємо бронювання в localStorage (ключ: userBooking_<date>)
       localStorage.setItem("userBooking_" + date, JSON.stringify({ name: nameInput, date: date }));
+      // Також зберігаємо загальне ім'я користувача, щоб використовувати для перевірок у черзі
+      localStorage.setItem("userName", normalizedName);
+      alert("Бронювання підтверджено!");
     });
 
-    /***** Отримання бронювань для дозволених дат (сьогодні, завтра, післязавтра) *****/
+    /***** Отримання бронювань для дозволених дат *****/
     function updateAllBookings() {
       currentReservations = [];
-      var allowedDates = [];
-      var todayObj = new Date();
-      var todayStrLocal = todayObj.toISOString().split("T")[0];
-      allowedDates.push(todayStrLocal);
-      var tomorrowObj = new Date(todayObj);
-      tomorrowObj.setDate(tomorrowObj.getDate() + 1);
-      allowedDates.push(tomorrowObj.toISOString().split("T")[0]);
-      var dayAfterObj = new Date(todayObj);
-      dayAfterObj.setDate(dayAfterObj.getDate() + 2);
-      allowedDates.push(dayAfterObj.toISOString().split("T")[0]);
+      var allowedDates = getAllowedDates();
       var remaining = allowedDates.length;
       allowedDates.forEach(function(date) {
          reservationsRef.child(date).once("value").then(function(snapshot) {
@@ -491,11 +475,12 @@
             }
             remaining--;
             if (remaining === 0) {
+               // Сортуємо за часом початку
                currentReservations.sort(function(a, b) {
                   return a.scheduledStart - b.scheduledStart;
                });
                updateQueueDisplay();
-               updateCancelButton();
+               updateCancelButtons();
                updateMiniGameButton();
             }
          });
@@ -505,11 +490,62 @@
     setInterval(updateAllBookings, 5000);
     updateAllBookings();
 
-    /***** Для поточного бронювання (тільки сьогодні) *****/
+    /***** Вивід черги бронювань (показуємо 5 найбільш актуальних) *****/
+    function updateQueueDisplay() {
+      var queueList = document.getElementById("reservationQueue");
+      queueList.innerHTML = "";
+      // Виводимо лише 5 найактуальніших бронювань
+      var bookingsToShow = currentReservations.slice(0, 5);
+      var monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      if (bookingsToShow.length === 0) {
+         var li = document.createElement("li");
+         li.textContent = "Черга порожня!";
+         li.style.textAlign = "center";
+         queueList.appendChild(li);
+      } else {
+         bookingsToShow.forEach(function(res, index) {
+            var li = document.createElement("li");
+            var d = new Date(res.scheduledStart);
+            var dayStr = (d.getDate() < 10 ? "0" : "") + d.getDate();
+            var monthStr = monthNames[d.getMonth()];
+            var hh = (d.getHours() < 10 ? "0" : "") + d.getHours();
+            var mm = (d.getMinutes() < 10 ? "0" : "") + d.getMinutes();
+            var formattedTime = dayStr + " " + monthStr + ", " + hh + ":" + mm;
+            li.innerHTML = "<strong>" + (index + 1) + ".</strong> " + formattedTime + " - " + res.name;
+            // Якщо бронювання належить поточному користувачу, додаємо кнопку скасування
+            var currentUser = localStorage.getItem("userName");
+            if (currentUser && res.normalizedName === currentUser) {
+               var cancelBtn = document.createElement("button");
+               cancelBtn.className = "cancelBtn";
+               cancelBtn.innerText = "Скасувати (" + res.date + ")";
+               cancelBtn.onclick = function() {
+                  cancelBooking(res.date, res.normalizedName);
+               };
+               li.appendChild(cancelBtn);
+            }
+            queueList.appendChild(li);
+         });
+      }
+    }
+
+    /***** Функція скасування бронювання *****/
+    function cancelBooking(bookingDate, normalizedName) {
+      reservationsRef.child(bookingDate).child(normalizedName).remove(function(error) {
+         if (error) {
+            alert("Помилка скасування бронювання");
+         } else {
+            alert("Бронювання на " + bookingDate + " скасовано");
+            localStorage.removeItem("userBooking_" + bookingDate);
+            updateAllBookings();
+         }
+      });
+    }
+
+    /***** Для поточного бронювання (тільки для сьогодні) *****/
     function updateCurrentReservation() {
       var now = Date.now();
-      // Вибираємо бронювання лише для сьогоднішньої дати
       var todayStrLocal = new Date().toISOString().split("T")[0];
+      // Фільтруємо бронювання лише для сьогодні
       var todayBookings = currentReservations.filter(function(res) {
          return res.date === todayStrLocal;
       });
@@ -559,12 +595,14 @@
       currentReservations.forEach(function(res) {
          leaderboardData[res.normalizedName] = (leaderboardData[res.normalizedName] || 0) + 1;
       });
-      // Для сьогодні використовуємо todayStr
-      leaderboardRef.child(todayStr).set(leaderboardData);
+      // Записуємо лідерів для сьогоднішньої дати
+      var todayStrLocal = new Date().toISOString().split("T")[0];
+      leaderboardRef.child(todayStrLocal).set(leaderboardData);
       updateLeaderboardDisplay();
     }
     function updateLeaderboardDisplay() {
-      leaderboardRef.child(todayStr).once("value").then(function(snapshot) {
+      var todayStrLocal = new Date().toISOString().split("T")[0];
+      leaderboardRef.child(todayStrLocal).once("value").then(function(snapshot) {
          var data = snapshot.val() || {};
          var entries = [];
          for (var key in data) {
@@ -662,24 +700,23 @@
       }
     }
 
-    /***** Кнопки скасування бронювання *****/
-    // Ми виводимо кнопку скасування для кожного бронювання користувача (в updateQueueDisplay)
-    function updateCancelButton() {
-      // Ця функція тепер не потрібна окремо, оскільки кнопки створюються для кожного запису.
-    }
-    function cancelBooking(bookingDate, normalizedName) {
-      reservationsRef.child(bookingDate).child(normalizedName).remove(function(error) {
-         if (error) {
-            alert("Помилка скасування бронювання");
-         } else {
-            alert("Бронювання на " + bookingDate + " скасовано");
-            localStorage.removeItem("userBooking_" + bookingDate);
-         }
-      });
+    /***** Кнопка міні-гри *****/
+    document.getElementById("miniGameBtn").addEventListener("click", function() {
+      document.getElementById("minigameArea").style.display = "block";
+      startMemoryMazeGame();
+    });
+    function updateMiniGameButton() {
+      var currentUser = localStorage.getItem("userName");
+      var miniGameButtonContainer = document.getElementById("miniGameButtonContainer");
+      if (currentUser && currentReservations.some(function(res) { return res.normalizedName === currentUser; })) {
+         miniGameButtonContainer.style.display = "block";
+      } else {
+         miniGameButtonContainer.style.display = "none";
+      }
     }
 
     /***** Міні-гра: Memory Maze *****/
-    // Концепція: спочатку показується маршрут лабіринту (демо-фаза), потім гравець має повторити його.
+    // Концепція: на demo-фазі показується маршрут лабіринту (5 секунд), а потім гравець має повторити його.
     function generateMemoryMazeRoute() {
       var routeLength = memoryMazeLevel + 3;
       memoryMazeRoute = [];
@@ -696,7 +733,6 @@
          current = next;
       }
     }
-
     function drawMemoryMaze() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       // Малюємо сітку
@@ -727,13 +763,11 @@
          ctx.fill();
       }
     }
-
     function showMemoryMazeRoute() {
       memoryMazePhase = "demo";
       drawMemoryMaze();
       setTimeout(startMemoryMazeReplication, demoDuration);
     }
-
     function startMemoryMazeGame() {
       generateMemoryMazeRoute();
       memoryMazePhase = "demo";
@@ -741,13 +775,11 @@
       playerPosition = { x: memoryMazeRoute[0].x, y: memoryMazeRoute[0].y };
       showMemoryMazeRoute();
     }
-
     function startMemoryMazeReplication() {
       memoryMazePhase = "replication";
       drawMemoryMaze();
     }
-
-    // Обробка клавіш для реплікації маршруту (стрілки)
+    // Обробка клавіш (стрілки)
     document.addEventListener("keydown", function(e) {
       if (memoryMazePhase === "replication") {
          var newX = playerPosition.x;
@@ -776,8 +808,7 @@
          }
       }
     });
-
-    // Обробка кліків для реплікації маршруту (для ПК)
+    // Обробка кліків (для ПК)
     canvas.addEventListener("click", function(e) {
       if (memoryMazePhase === "replication") {
          var rect = canvas.getBoundingClientRect();
@@ -806,7 +837,6 @@
          }
       }
     });
-
     /***** Міні-гра: Кнопка для запуску Memory Maze *****/
     document.getElementById("miniGameBtn").addEventListener("click", function() {
       document.getElementById("minigameArea").style.display = "block";
