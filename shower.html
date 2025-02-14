@@ -408,13 +408,13 @@
         alert("Будь ласка, введіть ім'я та підтвердіть дату й час бронювання!");
         return;
       }
-      // Приводимо ім'я до нижнього регістру для перевірки унікальності для даної дати
+      // Приводимо ім'я до нижнього регістру для перевірки унікальності для цієї дати
       var normalizedName = nameInput.toLowerCase();
-      // Перевірка локально: чи вже забронював для цієї дати
-      var existingBooking = localStorage.getItem("userBooking");
+      // Перевірка локально для конкретної дати
+      var existingBooking = localStorage.getItem("userBooking_" + date);
       if (existingBooking) {
          var bookingObj = JSON.parse(existingBooking);
-         if (bookingObj.date === date && bookingObj.name.toLowerCase() === normalizedName) {
+         if (bookingObj.name.toLowerCase() === normalizedName) {
             alert("Такий користувач вже забронював для цієї дати!");
             return;
          }
@@ -437,8 +437,8 @@
         var updates = {};
         updates[normalizedName] = reservation;
         reservationsRef.child(date).update(updates);
-        // Зберігаємо бронювання (ім'я та дату) у localStorage
-        localStorage.setItem("userBooking", JSON.stringify({ name: nameInput, date: date }));
+        // Зберігаємо бронювання для даної дати у localStorage
+        localStorage.setItem("userBooking_" + date, JSON.stringify({ name: nameInput, date: date }));
       });
     });
 
