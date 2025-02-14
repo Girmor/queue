@@ -20,6 +20,27 @@
       margin: 20px auto;
       padding: 20px;
     }
+    /* Кнопка для міні-гри – завжди показана */
+    #miniGameButtonContainer {
+      text-align: center;
+      margin-bottom: 20px;
+      display: block;
+    }
+    #miniGameBtn {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      outline: none;
+    }
+    #miniGameBtn img {
+      vertical-align: middle;
+    }
+    #miniGameBtn span {
+      font-size: 1.2em;
+      vertical-align: middle;
+      color: #007bff;
+      margin-left: 5px;
+    }
     /* Форма бронювання */
     .booking-form {
       background: #fff;
@@ -39,7 +60,6 @@
       border: 1px solid #ccc;
       border-radius: 6px;
     }
-    /* Група для вирівнювання дати, часу та додаткового часу */
     .date-time-group {
       display: flex;
       gap: 10px;
@@ -59,7 +79,7 @@
     .booking-form button:hover {
       background: #0056b3;
     }
-    /* Кнопки скасування бронювання (для кожного запису) */
+    /* Кнопки скасування бронювання */
     .cancelBtn {
       padding: 5px 10px;
       background: #d32f2f;
@@ -302,10 +322,19 @@
       animation: waterRipple 1s ease-out;
       z-index: 999;
     }
+    /* Сховані елементи для відтворення пісень */
+    .hidden-players {
+      display: none;
+    }
   </style>
 </head>
 <body>
   <div class="container">
+    <!-- Кнопка для міні-гри (завжди активна) -->
+    <div id="miniGameButtonContainer">
+      <button id="miniGameBtn">Міні-гра</button>
+    </div>
+
     <!-- Форма бронювання -->
     <div class="booking-form">
       <div id="vipBanner"></div>
@@ -363,14 +392,13 @@
       <div id="chatWarning" style="display:none;">Ви не забронювали!</div>
     </div>
 
-    <!-- Віртуальна душова кімната -->
+    <!-- Віртуальна душова кімната з анімацією та опитуванням -->
     <div class="virtual-shower-room" id="virtualShowerRoom">
       <h2>Віртуальна душова кімната</h2>
       <div class="avatar-container" id="avatarContainer">
         <div class="avatar"></div>
         <div class="avatar"></div>
         <div class="avatar"></div>
-        <!-- Можна додати більше аватарів -->
       </div>
       <div class="poll-section" id="pollSection">
         <h3>Яка пісня ідеально підходить для душу?</h3>
@@ -385,9 +413,59 @@
   <!-- Кнопка "Оновити" для водяного ефекту -->
   <button id="refreshBtn" onclick="showWaterAnimation()">Оновити</button>
 
+  <!-- Сховані елементи для пісень (YouTube IFrame API) -->
+  <div class="hidden-players">
+    <div id="song1"></div>
+    <div id="song2"></div>
+    <div id="song3"></div>
+  </div>
+
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+
+  <!-- Завантаження YouTube IFrame API -->
+  <script>
+    var tag = document.createElement('script');
+    tag.src = "https://www.youtube.com/iframe_api";
+    var firstScriptTag = document.getElementsByTagName('script')[0];
+    firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+    var player1, player2, player3;
+    function onYouTubeIframeAPIReady() {
+      player1 = new YT.Player('song1', {
+        height: '0',
+        width: '0',
+        videoId: 'Ob0UE3mdYvE',
+        playerVars: { 'autoplay': 0, 'controls': 0 }
+      });
+      player2 = new YT.Player('song2', {
+        height: '0',
+        width: '0',
+        videoId: 'Y8nCOeV3kKc',
+        playerVars: { 'autoplay': 0, 'controls': 0 }
+      });
+      player3 = new YT.Player('song3', {
+        height: '0',
+        width: '0',
+        videoId: 'JsGd5I0UxhM',
+        playerVars: { 'autoplay': 0, 'controls': 0 }
+      });
+    }
+
+    function vote(option) {
+      var pollResults = document.getElementById("pollResults");
+      pollResults.innerText = "Ви обрали: " + option;
+      if (option === "song1") {
+        player1.playVideo();
+      } else if (option === "song2") {
+        player2.playVideo();
+      } else if (option === "song3") {
+        player3.playVideo();
+      }
+    }
+  </script>
+
   <script>
     /***** Firebase Configuration *****/
     var firebaseConfig = {
@@ -408,8 +486,9 @@
     var chatRef = db.ref("showerChat");
     var currentReservations = []; // бронювання з дозволених дат
     var currentReservation = null; // бронювання для сьогодні
-    var miniGameDuration = 33; // (не використовується, але залишаємо для сумісності)
-
+    var prevActiveBooking = null;  // для фіксації активного бронювання
+    var miniGameDuration = 33; // секунд (не використовується)
+    
     /***** Allowed Dates: сьогодні, завтра, післязавтра *****/
     function getAllowedDates() {
       var allowed = [];
@@ -446,15 +525,12 @@
          alert("Будь ласка, введіть ім'я та підтвердіть дату й час бронювання!");
          return;
       }
-      // Перевірка: дозволені дати
       var allowedDates = getAllowedDates();
       if (allowedDates.indexOf(date) === -1) {
          alert("Можна бронювати лише на сьогодні, завтра та післязавтра!");
          return;
       }
-      // Приводимо ім'я до нижнього регістру для перевірки унікальності для цієї дати
       var normalizedName = nameInput.toLowerCase();
-      // Перевірка локально для цієї дати (ключ: "userBooking_<date>")
       var existingBooking = localStorage.getItem("userBooking_" + date);
       if (existingBooking) {
          var bookingObj = JSON.parse(existingBooking);
@@ -463,7 +539,6 @@
             return;
          }
       }
-      // Перевірка: користувач може бронювати максимум на 3 дні
       var bookingCount = 0;
       allowedDates.forEach(function(d) {
          var bStr = localStorage.getItem("userBooking_" + d);
@@ -478,7 +553,7 @@
          alert("Ви можете забронювати максимум на 3 дні!");
          return;
       }
-      var reservedTime = 15 + extra; // хвилин
+      var reservedTime = 15 + extra;
       var scheduledStart = new Date(date + "T" + time + ":00").getTime();
       var reservation = {
          name: nameInput,
@@ -488,11 +563,8 @@
          date: date,
          confirmed: false
       };
-      // Записуємо бронювання у Firebase під вузлом для цієї дати
       reservationsRef.child(date).update({ [normalizedName]: reservation });
-      // Зберігаємо бронювання в localStorage (ключ: userBooking_<date>)
       localStorage.setItem("userBooking_" + date, JSON.stringify({ name: nameInput, date: date }));
-      // Зберігаємо загальне ім'я користувача
       localStorage.setItem("userName", normalizedName);
       alert("Бронювання підтверджено!");
     });
@@ -542,7 +614,6 @@
             var mm = (d.getMinutes() < 10 ? "0" : "") + d.getMinutes();
             var formattedTime = dayStr + " " + monthStr + ", " + hh + ":" + mm;
             li.innerHTML = "<strong>" + (index + 1) + ".</strong> " + formattedTime + " - " + res.name;
-            // Додаємо кнопку скасування для бронювань поточного користувача
             var currentUser = localStorage.getItem("userName");
             if (currentUser && res.normalizedName === currentUser) {
                var cancelBtn = document.createElement("button");
@@ -572,6 +643,7 @@
     }
 
     /***** Поточне бронювання (для сьогодні) *****/
+    let prevActiveBooking = null;
     function updateCurrentReservation() {
       var now = Date.now();
       var todayStrLocal = new Date().toISOString().split("T")[0];
@@ -590,6 +662,10 @@
             break;
          }
       }
+      if (prevActiveBooking && activeBooking && prevActiveBooking.normalizedName === activeBooking.normalizedName) {
+         return;
+      }
+      prevActiveBooking = activeBooking;
       currentReservation = activeBooking;
       
       var currentDiv = document.getElementById("currentReservation");
@@ -731,12 +807,24 @@
       }
     }
 
-    /***** Кнопка міні-гри видалена - Memory Maze більше не використовується *****/
+    /***** Кнопка міні-гри (Shower Dash) - завжди активна, відкривається у новому вікні *****/
+    function openGameWindow() {
+      window.open("shower-dash.html", "_blank", "width=420,height=700");
+    }
+    document.getElementById("miniGameBtn").addEventListener("click", openGameWindow);
 
-    /***** Віртуальна душова кімната та опитування *****/
+    /***** Функції для віртуальної душової кімнати та опитування *****/
     function vote(option) {
       var pollResults = document.getElementById("pollResults");
       pollResults.innerText = "Ви обрали: " + option;
+      // Відтворення пісні через YouTube IFrame API (див. нижче)
+      if (option === "song1") {
+         player1.playVideo();
+      } else if (option === "song2") {
+         player2.playVideo();
+      } else if (option === "song3") {
+         player3.playVideo();
+      }
     }
 
     /***** Кнопка "Оновити" для водяного ефекту *****/
@@ -749,15 +837,33 @@
       }, 1000);
     }
 
-    // гра міні деш
-    document.getElementById("miniGameBtn").addEventListener("click", function() {
-      window.open("shower-dash.html", "_blank", "width=420,height=700");
-    });
+    /***** YouTube IFrame API для відтворення пісень *****/
+    var tag = document.createElement('script');
+    tag.src = "https://www.youtube.com/iframe_api";
+    var firstScriptTag = document.getElementsByTagName('script')[0];
+    firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
 
-
-
-    /***** Функції для анімації водяного ефекту *****/
-    // Конфетті вже використовується для відзначення успіху в інших розділах (якщо потрібно – додайте інші анімації)
+    var player1, player2, player3;
+    function onYouTubeIframeAPIReady() {
+      player1 = new YT.Player('song1', {
+        height: '0',
+        width: '0',
+        videoId: 'Ob0UE3mdYvE',
+        playerVars: { 'autoplay': 0, 'controls': 0 }
+      });
+      player2 = new YT.Player('song2', {
+        height: '0',
+        width: '0',
+        videoId: 'Y8nCOeV3kKc',
+        playerVars: { 'autoplay': 0, 'controls': 0 }
+      });
+      player3 = new YT.Player('song3', {
+        height: '0',
+        width: '0',
+        videoId: 'JsGd5I0UxhM',
+        playerVars: { 'autoplay': 0, 'controls': 0 }
+      });
+    }
   </script>
 </body>
 </html>
