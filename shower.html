@@ -363,7 +363,7 @@
     /***** Firebase Configuration *****/
     // Замініть ці дані на свої з Firebase Console
     var firebaseConfig = {
-        apiKey: "AIzaSyBgpL3-TVnAzVvGP4AGcPmzYOjTvU9G3P4",
+      apiKey: "AIzaSyBgpL3-TVnAzVvGP4AGcPmzYOjTvU9G3P4",
       authDomain: "toiletqueue-be126.firebaseapp.com",
       databaseURL: "https://toiletqueue-be126-default-rtdb.europe-west1.firebasedatabase.app/",
       projectId: "toiletqueue-be126",
@@ -408,8 +408,17 @@
         alert("Будь ласка, введіть ім'я та підтвердіть дату й час бронювання!");
         return;
       }
-      // Приводимо ім'я до нижнього регістру для перевірки унікальності на цю дату
+      // Приводимо ім'я до нижнього регістру для перевірки унікальності для даної дати
       var normalizedName = nameInput.toLowerCase();
+      // Перевірка локально: чи вже забронював для цієї дати
+      var existingBooking = localStorage.getItem("userBooking");
+      if (existingBooking) {
+         var bookingObj = JSON.parse(existingBooking);
+         if (bookingObj.date === date && bookingObj.name.toLowerCase() === normalizedName) {
+            alert("Такий користувач вже забронював для цієї дати!");
+            return;
+         }
+      }
       reservationsRef.child(date).once("value", function(snapshot) {
         var data = snapshot.val() || {};
         if (data[normalizedName]) {
@@ -419,7 +428,7 @@
         var reservedTime = 15 + extra; // хвилин
         var scheduledStart = new Date(date + "T" + time + ":00").getTime();
         var reservation = {
-          name: nameInput, 
+          name: nameInput,
           normalizedName: normalizedName,
           reservedTime: reservedTime,
           scheduledStart: scheduledStart,
@@ -428,8 +437,8 @@
         var updates = {};
         updates[normalizedName] = reservation;
         reservationsRef.child(date).update(updates);
-        // Зберігаємо оригінальне ім'я для подальших перевірок
-        localStorage.setItem("userName", nameInput);
+        // Зберігаємо бронювання (ім'я та дату) у localStorage
+        localStorage.setItem("userBooking", JSON.stringify({ name: nameInput, date: date }));
       });
     });
 
@@ -658,7 +667,7 @@
     var playerPosition = null;
     var currentRouteStep = 0;
     var memoryMazePhase = ""; // "demo" або "replication"
-    var demoDuration = 5000; // 5 секунд показу маршруту
+    var demoDuration = 5000; // 5 секунд для показу маршруту
 
     function generateMemoryMazeRoute() {
       var routeLength = memoryMazeLevel + 3;
@@ -727,7 +736,7 @@
       drawMemoryMaze();
     }
 
-    // Обробка клавіш для реплікації маршруту (стрілки)
+    // Обробка клавіш для реплікації маршруту
     document.addEventListener("keydown", function(e) {
       if (memoryMazePhase === "replication") {
         var newX = playerPosition.x;
