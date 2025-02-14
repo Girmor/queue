@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shower Dash</title>
+  <style>
+    body {
+      margin: 0;
+      background: #eef2f3;
+      font-family: 'Roboto', sans-serif;
+      overflow: hidden;
+    }
+    #gameCanvas {
+      background: #fff;
+      display: block;
+      margin: 20px auto;
+      border: 2px solid #007bff;
+      border-radius: 8px;
+    }
+    #score {
+      text-align: center;
+      font-size: 1.5em;
+      margin-top: 10px;
+      color: #333;
+    }
+    #backButton {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      padding: 8px 16px;
+      background: #007bff;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 1em;
+    }
+    #backButton:hover {
+      background: #0056b3;
+    }
+  </style>
+</head>
+<body>
+  <button id="backButton">Назад</button>
+  <canvas id="gameCanvas" width="400" height="600"></canvas>
+  <div id="score">Score: 0</div>
+
+  <script>
+    // Shower Dash Game
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    const scoreDisplay = document.getElementById("score");
+    const backButton = document.getElementById("backButton");
+
+    backButton.addEventListener("click", function() {
+      window.close();
+    });
+
+    let score = 0;
+    let gameOver = false;
+
+    // Персонаж: простий прямокутник, який рухається горизонтально
+    let player = {
+      x: canvas.width / 2 - 15,
+      y: canvas.height - 60,
+      width: 30,
+      height: 30,
+      speed: 5,
+      dx: 0,
+      dy: 0
+    };
+
+    // Масиви для бонусів і перешкод
+    let bonuses = [];
+    let obstacles = [];
+
+    // Налаштування інтервалів для появи бонусів та перешкод (в мілісекундах)
+    const bonusSpawnInterval = 1500;
+    const obstacleSpawnInterval = 2500;
+
+    function drawPlayer() {
+      ctx.fillStyle = "#00BCD4"; // персонаж – світло-блакитний
+      ctx.fillRect(player.x, player.y, player.width, player.height);
+    }
+
+    function drawBonuses() {
+      bonuses.forEach(bonus => {
+        // Краплі води – синьо-блакитний колір, бульбашки – світло-білий
+        ctx.fillStyle = bonus.type === "water" ? "#03A9F4" : "#E0F7FA";
+        ctx.beginPath();
+        ctx.arc(bonus.x, bonus.y, bonus.radius, 0, Math.PI * 2);
+        ctx.fill();
+      });
+    }
+
+    function drawObstacles() {
+      obstacles.forEach(obs => {
+        ctx.fillStyle = "#FF5722"; // перешкоди – помаранчеві
+        ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
+      });
+    }
+
+    function movePlayer() {
+      player.x += player.dx;
+      player.y += player.dy;
+      // Обмеження по межах екрану
+      if (player.x < 0) player.x = 0;
+      if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
+      if (player.y < 0) player.y = 0;
+      if (player.y + player.height > canvas.height) player.y = canvas.height - player.height;
+    }
+
+    function updateBonuses() {
+      bonuses.forEach(bonus => {
+        bonus.y += bonus.speed;
+      });
+      bonuses = bonuses.filter(bonus => bonus.y - bonus.radius < canvas.height);
+    }
+
+    function updateObstacles() {
+      obstacles.forEach(obs => {
+        obs.y += obs.speed;
+      });
+      obstacles = obstacles.filter(obs => obs.y < canvas.height);
+    }
+
+    function detectCollisionRectCircle(rect, circle) {
+      let distX = Math.abs(circle.x - rect.x - rect.width / 2);
+      let distY = Math.abs(circle.y - rect.y - rect.height / 2);
+      if (distX > (rect.width / 2 + circle.radius)) return false;
+      if (distY > (rect.height / 2 + circle.radius)) return false;
+      if (distX <= (rect.width / 2)) return true;
+      if (distY <= (rect.height / 2)) return true;
+      let dx = distX - rect.width / 2;
+      let dy = distY - rect.height / 2;
+      return (dx * dx + dy * dy <= (circle.radius * circle.radius));
+    }
+
+    function detectRectCollision(rect1, rect2) {
+      return rect1.x < rect2.x + rect2.width &&
+             rect1.x + rect1.width > rect2.x &&
+             rect1.y < rect2.y + rect2.height &&
+             rect1.y + rect1.height > rect2.y;
+    }
+
+    function checkCollisions() {
+      // Перевірка зіткнень з бонусами
+      bonuses.forEach((bonus, index) => {
+        if (detectCollisionRectCircle(player, bonus)) {
+          score += 10;
+          bonuses.splice(index, 1);
+        }
+      });
+      // Перевірка зіткнень з перешкодами
+      obstacles.forEach(obs => {
+        if (detectRectCollision(player, obs)) {
+          gameOver = true;
+        }
+      });
+    }
+
+    function updateScore() {
+      scoreDisplay.innerText = "Score: " + score;
+    }
+
+    function clearCanvas() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    function gameLoop() {
+      if (gameOver) {
+        alert("Game Over! Your score: " + score);
+        window.location.reload();
+        return;
+      }
+      clearCanvas();
+      drawPlayer();
+      drawBonuses();
+      drawObstacles();
+      movePlayer();
+      updateBonuses();
+      updateObstacles();
+      checkCollisions();
+      updateScore();
+      requestAnimationFrame(gameLoop);
+    }
+
+    // Створення бонусів
+    setInterval(function() {
+      let bonus = {
+        x: Math.random() * canvas.width,
+        y: -10,
+        radius: 8,
+        speed: 3,
+        type: Math.random() < 0.5 ? "water" : "bubble"
+      };
+      bonuses.push(bonus);
+    }, bonusSpawnInterval);
+
+    // Створення перешкод
+    setInterval(function() {
+      let obstacle = {
+        x: Math.random() * (canvas.width - 30),
+        y: -30,
+        width: 30,
+        height: 30,
+        speed: 4
+      };
+      obstacles.push(obstacle);
+    }, obstacleSpawnInterval);
+
+    // Обробка клавіш – для управління персонажем (стрілки)
+    document.addEventListener("keydown", function(e) {
+      if (e.key === "ArrowLeft") {
+        player.dx = -player.speed;
+      } else if (e.key === "ArrowRight") {
+        player.dx = player.speed;
+      } else if (e.key === "ArrowUp") {
+        player.dy = -player.speed;
+      } else if (e.key === "ArrowDown") {
+        player.dy = player.speed;
+      }
+    });
+
+    document.addEventListener("keyup", function(e) {
+      if (["ArrowLeft", "ArrowRight"].includes(e.key)) {
+        player.dx = 0;
+      }
+      if (["ArrowUp", "ArrowDown"].includes(e.key)) {
+        player.dy = 0;
+      }
+    });
+
+    // Запуск ігрового циклу
+    gameLoop();
+  </script>
+</body>
+</html>
