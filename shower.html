@@ -47,14 +47,13 @@
       border: 1px solid #ccc;
       border-radius: 6px;
     }
-    /* Нове вирівнювання для дати, часу і вибору додаткового часу */
+    /* Група для вирівнювання дати, часу та додаткового часу */
     .date-time-group {
       display: flex;
       gap: 10px;
     }
     .date-time-group input,
     .date-time-group select {
-      width: auto;
       flex: 1;
       margin: 0;
     }
@@ -68,6 +67,24 @@
     .booking-form button:hover {
       background: #0056b3;
     }
+    /* Кнопка скасування */
+    #cancelBtnContainer {
+      text-align: center;
+      margin-top: 10px;
+      display: none;
+    }
+    #cancelBtn {
+      padding: 10px;
+      background: #d32f2f;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    #cancelBtn:hover {
+      background: #b71c1c;
+    }
     /* VIP банер */
     #vipBanner {
       background: linear-gradient(90deg, #ff9a9e, #fad0c4);
@@ -80,7 +97,7 @@
       font-weight: bold;
       font-size: 16px;
     }
-    /* Черга та відображення бронювання */
+    /* Черга та бронювання */
     .queue-container {
       display: flex;
       flex-wrap: wrap;
@@ -98,6 +115,15 @@
       margin-top: 0;
       color: #333;
     }
+    .queue-box ul {
+      list-style: none;
+      padding: 0;
+    }
+    .queue-box li {
+      padding: 8px;
+      border-bottom: 1px solid #eee;
+    }
+    /* Прогрес-бар */
     .progress-bar {
       background: #ddd;
       border-radius: 4px;
@@ -199,7 +225,7 @@
       color: #d32f2f;
       font-size: 0.9em;
     }
-    /* Міні-гра: Pac-Man */
+    /* Міні-гра: Tanks (Pac-Man замінено на танчики) */
     .minigame {
       margin-top: 30px;
       background: #e9f5ff;
@@ -244,7 +270,6 @@
       <div id="vipBanner"></div>
       <h1>Електронна черга в душ</h1>
       <input type="text" id="userName" placeholder="Введіть своє ім'я">
-      <!-- Група для вирівнювання дати, часу та вибору додаткового часу -->
       <div class="date-time-group">
         <input type="date" id="reservationDate">
         <input type="time" id="reservationTime">
@@ -255,6 +280,9 @@
         </select>
       </div>
       <button id="bookBtn">Забронювати</button>
+      <div id="cancelBtnContainer">
+        <button id="cancelBtn">Скасувати візит</button>
+      </div>
     </div>
 
     <!-- Черга та поточне бронювання -->
@@ -297,10 +325,10 @@
       <div id="chatWarning" style="display:none;">Ви не забронювали!</div>
     </div>
 
-    <!-- Міні-гра: Pac-Man -->
+    <!-- Міні-гра: Tanks (гра на canvas) -->
     <div class="minigame" id="minigameArea" style="display:none;">
-      <h3>Міні-гра: Pac-Man</h3>
-      <canvas id="gameCanvas" width="300" height="210"></canvas>
+      <h3>Міні-гра: Танчики</h3>
+      <canvas id="gameCanvas" width="300" height="300"></canvas>
       <p>Ваш рахунок: <span id="gameScore">0</span></p>
       <button id="startMiniGameBtn">Почати гру</button>
     </div>
@@ -331,7 +359,7 @@
     var currentReservations = [];
     var progressInterval = null;
     var currentReservation = null;
-    var miniGameDuration = 33; // секунд для Pac-Man
+    var miniGameDuration = 33; // секунд для Tanks гри
     var miniGameTimer, miniGameInterval;
     var miniGameTimeLeft, miniGameScore = 0;
     var miniGameActive = false;
@@ -358,7 +386,6 @@
         alert("Будь ласка, введіть ім'я та підтвердіть дату й час бронювання!");
         return;
       }
-      // Перевірка унікальності для цієї дати
       reservationsRef.child(date).once("value", function(snapshot) {
         var data = snapshot.val() || {};
         if (data[name]) {
@@ -396,6 +423,7 @@
       updateLeaderboard();
       updateChatPermission();
       updateVIPBanner();
+      updateCancelButton();
     });
 
     function updateQueueDisplay() {
@@ -409,7 +437,13 @@
       } else {
         currentReservations.forEach(function(res, index) {
           var li = document.createElement("li");
-          li.textContent = (index + 1) + ". " + res.name + " (" + res.reservedTime + " хв)";
+          // Форматуємо час (HH:MM)
+          var d = new Date(res.scheduledStart);
+          var hh = d.getHours();
+          var mm = d.getMinutes();
+          hh = (hh < 10) ? "0" + hh : hh;
+          mm = (mm < 10) ? "0" + mm : mm;
+          li.textContent = (index + 1) + ". " + res.name + " (" + res.reservedTime + " хв, " + hh + ":" + mm + ")";
           queueList.appendChild(li);
         });
       }
@@ -445,6 +479,9 @@
         document.getElementById("confirmContainer").innerHTML = "";
       }
     }
+
+    // Щосекундне оновлення інформації про бронювання (для реального часу)
+    setInterval(updateCurrentReservation, 1000);
 
     function confirmReservation() {
       if (!currentReservation) return;
@@ -560,107 +597,118 @@
       }
     }
 
-    /***** Міні-гра: Pac-Man *****/
+    /***** Кнопка скасування бронювання *****/
+    document.getElementById("cancelBtn").addEventListener("click", cancelReservation);
+    function updateCancelButton() {
+      var currentUser = localStorage.getItem("userName");
+      var found = currentReservations.some(function(res) {
+        return res.name === currentUser;
+      });
+      var cancelContainer = document.getElementById("cancelBtnContainer");
+      cancelContainer.style.display = found ? "block" : "none";
+    }
+    function cancelReservation() {
+      var currentUser = localStorage.getItem("userName");
+      if (!currentUser) return;
+      reservationsRef.child(todayStr).child(currentUser).remove(function(error) {
+        if (error) {
+          alert("Помилка скасування бронювання");
+        } else {
+          alert("Ваш візит скасовано");
+        }
+      });
+    }
+
+    /***** Міні-гра: Tanks (замість Pac-Man) *****/
+    // Реалізація дуже спрощеної гри "Танчики" на canvas.
+    // Гравець керує танком (трикутник), може обертатись і рухатись вперед.
+    // Клавіші: стрілки для керування, пробіл для стрільби.
+    // Для спрощення, у цій версії вороги не з'являються, лише обчислюється рахунок за рух.
     var canvas = document.getElementById("gameCanvas");
     var ctx = canvas.getContext("2d");
-    var blockSize = 30;
-    var mazeInitial = [
-      [1,1,1,1,1,1,1,1,1,1],
-      [1,0,0,0,0,0,0,0,0,1],
-      [1,0,1,1,0,1,1,1,0,1],
-      [1,0,1,0,0,0,0,1,0,1],
-      [1,0,1,0,1,1,0,1,0,1],
-      [1,0,0,0,0,0,0,0,0,1],
-      [1,1,1,1,1,1,1,1,1,1]
-    ];
-    var maze = [];
-    var pacman = { x: 1, y: 1 };
-    var pacmanDir = { x: 0, y: 0 };
-    var score = 0;
-    var totalPellets = 0;
-    var gameInterval;
-    function initPacmanGame() {
-      maze = [];
-      for (var i = 0; i < mazeInitial.length; i++) {
-        maze[i] = mazeInitial[i].slice();
-      }
-      pacman = { x: 1, y: 1 };
-      pacmanDir = { x: 0, y: 0 };
-      score = 0;
-      totalPellets = 0;
-      for (var i = 0; i < maze.length; i++) {
-        for (var j = 0; j < maze[i].length; j++) {
-          if (maze[i][j] === 0) totalPellets++;
-        }
-      }
-      if (gameInterval) clearInterval(gameInterval);
-      gameInterval = setInterval(gameLoop, 200);
-      miniGameScore = 0;
-      document.getElementById("gameScore").innerText = miniGameScore;
+    var tank = { x: canvas.width / 2, y: canvas.height - 40, angle: -Math.PI/2, speed: 0 };
+    var bullets = [];
+    var tankScore = 0;
+    var tankGameInterval;
+    function initTankGame() {
+      tank = { x: canvas.width / 2, y: canvas.height - 40, angle: -Math.PI/2, speed: 0 };
+      bullets = [];
+      tankScore = 0;
+      clearInterval(tankGameInterval);
+      tankGameInterval = setInterval(tankGameLoop, 50);
       document.getElementById("startMiniGameBtn").style.display = "none";
     }
-    document.addEventListener("keydown", function(e) {
-      if (e.keyCode === 37 && pacmanDir.x !== 1) { pacmanDir = { x: -1, y: 0 }; }
-      else if (e.keyCode === 38 && pacmanDir.y !== 1) { pacmanDir = { x: 0, y: -1 }; }
-      else if (e.keyCode === 39 && pacmanDir.x !== -1) { pacmanDir = { x: 1, y: 0 }; }
-      else if (e.keyCode === 40 && pacmanDir.y !== -1) { pacmanDir = { x: 0, y: 1 }; }
-    });
-    function gameLoop() {
-      var newX = pacman.x + pacmanDir.x;
-      var newY = pacman.y + pacmanDir.y;
-      if (newX >= 0 && newX < maze[0].length && newY >= 0 && newY < maze.length && maze[newY][newX] !== 1) {
-        pacman.x = newX;
-        pacman.y = newY;
-        if (maze[newY][newX] === 0) {
-          maze[newY][newX] = 2;
-          score++;
-          miniGameScore = score;
-          document.getElementById("gameScore").innerText = miniGameScore;
-          if (score === totalPellets) {
-            endPacmanGame();
-          }
+    function tankGameLoop() {
+      // Оновлення позиції танку
+      tank.x += tank.speed * Math.cos(tank.angle);
+      tank.y += tank.speed * Math.sin(tank.angle);
+      // Обмеження за межами canvas
+      if(tank.x < 0) tank.x = 0;
+      if(tank.x > canvas.width) tank.x = canvas.width;
+      if(tank.y < 0) tank.y = 0;
+      if(tank.y > canvas.height) tank.y = canvas.height;
+      // Оновлення куль
+      for(var i = 0; i < bullets.length; i++){
+        bullets[i].x += bullets[i].speed * Math.cos(bullets[i].angle);
+        bullets[i].y += bullets[i].speed * Math.sin(bullets[i].angle);
+        // Видалення куль за межами canvas
+        if(bullets[i].x < 0 || bullets[i].x > canvas.width || bullets[i].y < 0 || bullets[i].y > canvas.height){
+          bullets.splice(i,1);
+          i--;
+          continue;
         }
       }
-      drawPacmanGame();
+      tankScore++;
+      document.getElementById("gameScore").innerText = tankScore;
+      drawTankGame();
     }
-    function drawPacmanGame() {
+    function drawTankGame() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      for (var i = 0; i < maze.length; i++) {
-        for (var j = 0; j < maze[i].length; j++) {
-          if (maze[i][j] === 1) {
-            ctx.fillStyle = "#0000FF";
-            ctx.fillRect(j * blockSize, i * blockSize, blockSize, blockSize);
-          } else if (maze[i][j] === 0) {
-            ctx.fillStyle = "#FFEB3B";
-            ctx.beginPath();
-            ctx.arc(j * blockSize + blockSize/2, i * blockSize + blockSize/2, 4, 0, 2 * Math.PI);
-            ctx.fill();
-          }
-        }
-      }
-      var centerX = pacman.x * blockSize + blockSize/2;
-      var centerY = pacman.y * blockSize + blockSize/2;
+      // Малюємо танк (трикутник)
       ctx.fillStyle = "#FFEB3B";
+      ctx.save();
+      ctx.translate(tank.x, tank.y);
+      ctx.rotate(tank.angle);
       ctx.beginPath();
-      var angle = 0.25 * Math.PI;
-      var directionAngle = 0;
-      if (pacmanDir.x === 1) directionAngle = 0;
-      else if (pacmanDir.x === -1) directionAngle = Math.PI;
-      else if (pacmanDir.y === 1) directionAngle = 0.5 * Math.PI;
-      else if (pacmanDir.y === -1) directionAngle = 1.5 * Math.PI;
-      ctx.arc(centerX, centerY, blockSize/2 - 2, directionAngle + angle, directionAngle - angle, false);
-      ctx.lineTo(centerX, centerY);
+      ctx.moveTo(0, -15);
+      ctx.lineTo(10, 15);
+      ctx.lineTo(-10, 15);
+      ctx.closePath();
       ctx.fill();
-      ctx.fillStyle = "#333";
-      ctx.font = "16px Roboto";
-      ctx.fillText("Рахунок: " + score, 10, canvas.height - 10);
+      ctx.restore();
+      // Малюємо кулі
+      ctx.fillStyle = "#FF5722";
+      bullets.forEach(function(bullet) {
+        ctx.beginPath();
+        ctx.arc(bullet.x, bullet.y, 4, 0, 2 * Math.PI);
+        ctx.fill();
+      });
     }
-    function endPacmanGame() {
-      clearInterval(gameInterval);
-      alert("Гру завершено! Ваш рахунок: " + score);
+    document.addEventListener("keydown", function(e) {
+      if(e.keyCode === 37) { // ліворуч - обертання
+        tank.angle -= 0.1;
+      } else if(e.keyCode === 39) { // праворуч - обертання
+        tank.angle += 0.1;
+      } else if(e.keyCode === 38) { // вперед
+        tank.speed = 4;
+      } else if(e.keyCode === 40) { // назад
+        tank.speed = -2;
+      } else if(e.keyCode === 32) { // пробіл - стрільба
+        bullets.push({ x: tank.x, y: tank.y, angle: tank.angle, speed: 6 });
+      }
+    });
+    document.addEventListener("keyup", function(e) {
+      if(e.keyCode === 38 || e.keyCode === 40) {
+        tank.speed = 0;
+      }
+    });
+    function endTankGame() {
+      clearInterval(tankGameInterval);
+      alert("Гру завершено! Ваш рахунок: " + tankScore);
       document.getElementById("startMiniGameBtn").style.display = "inline-block";
     }
-    document.getElementById("startMiniGameBtn").addEventListener("click", initPacmanGame);
+    document.getElementById("startMiniGameBtn").addEventListener("click", initTankGame);
+
   </script>
 </body>
 </html>
