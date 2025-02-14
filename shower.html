@@ -19,14 +19,26 @@
       margin: 20px auto;
       padding: 20px;
     }
-    .header {
+    /* Кнопка для запуску міні-гри (розташована у верхній частині) */
+    #miniGameButtonContainer {
       text-align: center;
-      margin-bottom: 30px;
+      margin-bottom: 20px;
+      display: none;
     }
-    .header h1 {
-      font-size: 2.5em;
-      margin: 0;
-      color: #333;
+    #miniGameBtn {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      outline: none;
+    }
+    #miniGameBtn img {
+      vertical-align: middle;
+    }
+    #miniGameBtn span {
+      font-size: 1.2em;
+      vertical-align: middle;
+      color: #007bff;
+      margin-left: 5px;
     }
     /* Форма бронювання */
     .booking-form {
@@ -123,6 +135,7 @@
       padding: 8px;
       border-bottom: 1px solid #eee;
     }
+    /* Формат списку бронювань: "1. 14 Feb, 14:00 - Імʼя" */
     /* Прогрес-бар */
     .progress-bar {
       background: #ddd;
@@ -225,7 +238,7 @@
       color: #d32f2f;
       font-size: 0.9em;
     }
-    /* Міні-гра: Tanks (гра "Танчики") */
+    /* Міні-гра: Tanks (Танчики) */
     .minigame {
       margin-top: 30px;
       background: #e9f5ff;
@@ -265,6 +278,14 @@
 </head>
 <body>
   <div class="container">
+    <!-- Кнопка для запуску міні-гри (відображається для тих, хто забронював) -->
+    <div id="miniGameButtonContainer">
+      <button id="miniGameBtn">
+        <img src="https://img.icons8.com/ios-filled/50/000000/tank.png" alt="Tank Icon">
+        <span>Міні-гра</span>
+      </button>
+    </div>
+
     <!-- Форма бронювання -->
     <div class="booking-form">
       <div id="vipBanner"></div>
@@ -424,11 +445,14 @@
       updateChatPermission();
       updateVIPBanner();
       updateCancelButton();
+      updateMiniGameButton();
     });
 
+    // Оновлений формат запису в черзі: "1. 14 Feb, 14:00 - Імʼя"
     function updateQueueDisplay() {
       var queueList = document.getElementById("reservationQueue");
       queueList.innerHTML = "";
+      var monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
       if (currentReservations.length === 0) {
         var li = document.createElement("li");
         li.textContent = "Черга порожня!";
@@ -439,10 +463,10 @@
           var li = document.createElement("li");
           var d = new Date(res.scheduledStart);
           var dayStr = (d.getDate() < 10 ? "0" : "") + d.getDate();
-          var monthStr = ((d.getMonth() + 1) < 10 ? "0" : "") + (d.getMonth() + 1);
+          var monthStr = monthNames[d.getMonth()];
           var hh = (d.getHours() < 10 ? "0" : "") + d.getHours();
           var mm = (d.getMinutes() < 10 ? "0" : "") + d.getMinutes();
-          var formattedTime = "(" + dayStr + "." + monthStr + "/" + hh + ":" + mm + ")";
+          var formattedTime = dayStr + " " + monthStr + ", " + hh + ":" + mm;
           li.textContent = (index + 1) + ". " + formattedTime + " - " + res.name;
           queueList.appendChild(li);
         });
@@ -479,7 +503,7 @@
         document.getElementById("confirmContainer").innerHTML = "";
       }
     }
-    // Оновлення інформації про бронювання в реальному часі
+    // Оновлення інформації про бронювання кожну секунду
     setInterval(updateCurrentReservation, 1000);
 
     function confirmReservation() {
@@ -619,7 +643,7 @@
     }
 
     /***** Міні-гра: Tanks (Танчики) *****/
-    // Реалізація простої гри "Танчики" на canvas.
+    // Проста версія гри "Танчики" на canvas.
     var canvas = document.getElementById("gameCanvas");
     var ctx = canvas.getContext("2d");
     var tank = { x: canvas.width / 2, y: canvas.height - 40, angle: -Math.PI/2, speed: 0 };
@@ -703,6 +727,21 @@
       document.getElementById("startMiniGameBtn").style.display = "inline-block";
     }
     document.getElementById("startMiniGameBtn").addEventListener("click", initTankGame);
+
+    /***** Міні-гра: Кнопка для запуску *****/
+    // Кнопка для запуску міні-гри (розташована у верхній частині) показується, якщо користувач забронював.
+    document.getElementById("miniGameBtn").addEventListener("click", function() {
+      document.getElementById("minigameArea").style.display = "block";
+    });
+    function updateMiniGameButton() {
+      var currentUser = localStorage.getItem("userName");
+      var miniGameButtonContainer = document.getElementById("miniGameButtonContainer");
+      if (currentUser && isUserInQueue(currentUser)) {
+        miniGameButtonContainer.style.display = "block";
+      } else {
+        miniGameButtonContainer.style.display = "none";
+      }
+    }
   </script>
 </body>
 </html>
