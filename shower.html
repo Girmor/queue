@@ -19,7 +19,7 @@
       margin: 20px auto;
       padding: 20px;
     }
-    /* Кнопка для запуску міні-гри (розташована у верхній частині) */
+    /* Кнопка для запуску міні-гри (Memory Maze) */
     #miniGameButtonContainer {
       text-align: center;
       margin-bottom: 20px;
@@ -79,7 +79,7 @@
     .booking-form button:hover {
       background: #0056b3;
     }
-    /* Кнопка скасування */
+    /* Кнопка скасування бронювання */
     #cancelBtnContainer {
       text-align: center;
       margin-top: 10px;
@@ -135,7 +135,7 @@
       padding: 8px;
       border-bottom: 1px solid #eee;
     }
-    /* Формат списку бронювань: "1. 14 Feb, 14:00 - Імʼя" */
+    /* Формат запису у черзі: "1. 14 Feb, 14:00 - Імʼя" */
     /* Прогрес-бар */
     .progress-bar {
       background: #ddd;
@@ -238,7 +238,7 @@
       color: #d32f2f;
       font-size: 0.9em;
     }
-    /* Міні-гра: Tanks (Танчики) */
+    /* Міні-гра: Memory Maze */
     .minigame {
       margin-top: 30px;
       background: #e9f5ff;
@@ -252,9 +252,10 @@
       color: #333;
     }
     #gameCanvas {
-      background: #000;
+      background: #fff;
       display: block;
       margin: 0 auto 15px auto;
+      border: 2px solid #007bff;
       border-radius: 8px;
     }
     #gameScore {
@@ -278,7 +279,7 @@
 </head>
 <body>
   <div class="container">
-    <!-- Кнопка для запуску міні-гри (відображається для тих, хто забронював) -->
+    <!-- Кнопка для запуску міні-гри (Memory Maze) -->
     <div id="miniGameButtonContainer">
       <button id="miniGameBtn">
         <img src="https://img.icons8.com/ios-filled/50/000000/tank.png" alt="Tank Icon">
@@ -346,9 +347,9 @@
       <div id="chatWarning" style="display:none;">Ви не забронювали!</div>
     </div>
 
-    <!-- Міні-гра: Tanks (Танчики) -->
+    <!-- Міні-гра: Memory Maze -->
     <div class="minigame" id="minigameArea" style="display:none;">
-      <h3>Міні-гра: Танчики</h3>
+      <h3>Міні-гра: Memory Maze</h3>
       <canvas id="gameCanvas" width="300" height="300"></canvas>
       <p>Ваш рахунок: <span id="gameScore">0</span></p>
       <button id="startMiniGameBtn">Почати гру</button>
@@ -380,7 +381,7 @@
     var currentReservations = [];
     var progressInterval = null;
     var currentReservation = null;
-    var miniGameDuration = 33; // секунд для Tanks гри
+    var miniGameDuration = 33; // секунд для Memory Maze
     var miniGameTimer, miniGameInterval;
     var miniGameTimeLeft, miniGameScore = 0;
     var miniGameActive = false;
@@ -399,32 +400,36 @@
 
     /***** Функції бронювання *****/
     document.getElementById("bookBtn").addEventListener("click", function() {
-      var name = document.getElementById("userName").value.trim();
+      var nameInput = document.getElementById("userName").value.trim();
       var date = document.getElementById("reservationDate").value;
       var time = document.getElementById("reservationTime").value;
       var extra = parseInt(document.getElementById("extraTime").value);
-      if (!name || !date || !time) {
+      if (!nameInput || !date || !time) {
         alert("Будь ласка, введіть ім'я та підтвердіть дату й час бронювання!");
         return;
       }
+      // Приводимо ім'я до нижнього регістру для унікальності
+      var normalizedName = nameInput.toLowerCase();
       reservationsRef.child(date).once("value", function(snapshot) {
         var data = snapshot.val() || {};
-        if (data[name]) {
+        if (data[normalizedName]) {
           alert("Такий користувач вже забронював для цієї дати!");
           return;
         }
         var reservedTime = 15 + extra; // хвилин
         var scheduledStart = new Date(date + "T" + time + ":00").getTime();
+        // Зберігаємо як оригінальне ім'я та нормалізоване для перевірок
         var reservation = {
-          name: name,
+          name: nameInput,
+          normalizedName: normalizedName,
           reservedTime: reservedTime,
           scheduledStart: scheduledStart,
           confirmed: false
         };
         var updates = {};
-        updates[name] = reservation;
+        updates[normalizedName] = reservation;
         reservationsRef.child(date).update(updates);
-        localStorage.setItem("userName", name);
+        localStorage.setItem("userName", normalizedName);
       });
     });
 
@@ -448,7 +453,7 @@
       updateMiniGameButton();
     });
 
-    // Оновлений формат запису в черзі: "1. 14 Feb, 14:00 - Імʼя"
+    // Формат запису: "1. 14 Feb, 14:00 - Імʼя"
     function updateQueueDisplay() {
       var queueList = document.getElementById("reservationQueue");
       queueList.innerHTML = "";
@@ -503,12 +508,12 @@
         document.getElementById("confirmContainer").innerHTML = "";
       }
     }
-    // Оновлення інформації про бронювання кожну секунду
+    // Оновлення інформації кожну секунду
     setInterval(updateCurrentReservation, 1000);
 
     function confirmReservation() {
       if (!currentReservation) return;
-      reservationsRef.child(todayStr).child(currentReservation.name).update({ confirmed: true });
+      reservationsRef.child(todayStr).child(currentReservation.normalizedName).update({ confirmed: true });
       alert("Візит підтверджено!");
     }
 
@@ -516,7 +521,7 @@
     function updateLeaderboard() {
       var leaderboardData = {};
       currentReservations.forEach(function(res) {
-        leaderboardData[res.name] = (leaderboardData[res.name] || 0) + 1;
+        leaderboardData[res.normalizedName] = (leaderboardData[res.normalizedName] || 0) + 1;
       });
       leaderboardRef.child(todayStr).set(leaderboardData);
       updateLeaderboardDisplay();
@@ -539,7 +544,7 @@
           var tdRank = document.createElement("td");
           tdRank.innerText = index + 1;
           var tdName = document.createElement("td");
-          tdName.innerText = entry.name;
+          tdName.innerText = entry.name; // тут можна замінити, якщо потрібно відображати оригінальне ім'я
           var tdScore = document.createElement("td");
           tdScore.innerText = entry.score;
           tr.appendChild(tdRank);
@@ -601,7 +606,7 @@
     }
     function isUserInQueue(userName) {
       return currentReservations.some(function(res) {
-        return res.name === userName;
+        return res.normalizedName === userName;
       });
     }
     function updateChatPermission() {
@@ -625,7 +630,7 @@
     function updateCancelButton() {
       var currentUser = localStorage.getItem("userName");
       var found = currentReservations.some(function(res) {
-        return res.name === currentUser;
+        return res.normalizedName === currentUser;
       });
       var cancelContainer = document.getElementById("cancelBtnContainer");
       cancelContainer.style.display = found ? "block" : "none";
@@ -642,101 +647,153 @@
       });
     }
 
-    /***** Міні-гра: Tanks (Танчики) *****/
-    // Проста версія гри "Танчики" на canvas.
+    /***** Міні-гра: Memory Maze *****/
+    // Концепція: На початку рівня показується маршрут лабіринту, який потім гравець має повторити.
+    var memoryMazeLevel = 1;
+    var gridSize = 6; // 6x6 лабіринт
     var canvas = document.getElementById("gameCanvas");
     var ctx = canvas.getContext("2d");
-    var tank = { x: canvas.width / 2, y: canvas.height - 40, angle: -Math.PI/2, speed: 0 };
-    var bullets = [];
-    var tankScore = 0;
-    var tankGameInterval;
-    function initTankGame() {
-      tank = { x: canvas.width / 2, y: canvas.height - 40, angle: -Math.PI/2, speed: 0 };
-      bullets = [];
-      tankScore = 0;
-      clearInterval(tankGameInterval);
-      tankGameInterval = setInterval(tankGameLoop, 50);
-      document.getElementById("startMiniGameBtn").style.display = "none";
+    var cellSize = canvas.width / gridSize; // наприклад, 300/6 = 50px
+    var memoryMazeRoute = [];
+    var playerPosition = null;
+    var currentRouteStep = 0;
+    var memoryMazePhase = ""; // "demo" або "replication"
+    var demoDuration = 5000; // 5 секунд для показу маршруту
+
+    function generateMemoryMazeRoute() {
+      var routeLength = memoryMazeLevel + 3;
+      memoryMazeRoute = [];
+      var current = { x: 0, y: 0 };
+      memoryMazeRoute.push(current);
+      for (var i = 1; i < routeLength; i++) {
+        var possibleMoves = [];
+        if (current.x > 0) possibleMoves.push({ x: current.x - 1, y: current.y });
+        if (current.x < gridSize - 1) possibleMoves.push({ x: current.x + 1, y: current.y });
+        if (current.y > 0) possibleMoves.push({ x: current.x, y: current.y - 1 });
+        if (current.y < gridSize - 1) possibleMoves.push({ x: current.x, y: current.y + 1 });
+        var next = possibleMoves[Math.floor(Math.random() * possibleMoves.length)];
+        memoryMazeRoute.push(next);
+        current = next;
+      }
     }
-    function tankGameLoop() {
-      // Оновлення позиції танку
-      tank.x += tank.speed * Math.cos(tank.angle);
-      tank.y += tank.speed * Math.sin(tank.angle);
-      // Обмеження за межами canvas
-      if(tank.x < 0) tank.x = 0;
-      if(tank.x > canvas.width) tank.x = canvas.width;
-      if(tank.y < 0) tank.y = 0;
-      if(tank.y > canvas.height) tank.y = canvas.height;
-      // Оновлення куль
-      for(var i = 0; i < bullets.length; i++){
-        bullets[i].x += bullets[i].speed * Math.cos(bullets[i].angle);
-        bullets[i].y += bullets[i].speed * Math.sin(bullets[i].angle);
-        if(bullets[i].x < 0 || bullets[i].x > canvas.width || bullets[i].y < 0 || bullets[i].y > canvas.height){
-          bullets.splice(i,1);
-          i--;
-          continue;
+
+    function drawMemoryMaze() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      // Малюємо сітку
+      ctx.strokeStyle = "#aaa";
+      for (var i = 0; i <= gridSize; i++) {
+        ctx.beginPath();
+        ctx.moveTo(i * cellSize, 0);
+        ctx.lineTo(i * cellSize, canvas.height);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(0, i * cellSize);
+        ctx.lineTo(canvas.width, i * cellSize);
+        ctx.stroke();
+      }
+      // Якщо фаза demo, підсвічуємо маршрут
+      if (memoryMazePhase === "demo") {
+        for (var i = 0; i < memoryMazeRoute.length; i++) {
+          var cell = memoryMazeRoute[i];
+          ctx.fillStyle = "rgba(0, 123, 255, 0.5)";
+          ctx.fillRect(cell.x * cellSize, cell.y * cellSize, cellSize, cellSize);
         }
       }
-      tankScore++;
-      document.getElementById("gameScore").innerText = tankScore;
-      drawTankGame();
-    }
-    function drawTankGame() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      // Малюємо танк (трикутник)
-      ctx.fillStyle = "#FFEB3B";
-      ctx.save();
-      ctx.translate(tank.x, tank.y);
-      ctx.rotate(tank.angle);
-      ctx.beginPath();
-      ctx.moveTo(0, -15);
-      ctx.lineTo(10, 15);
-      ctx.lineTo(-10, 15);
-      ctx.closePath();
-      ctx.fill();
-      ctx.restore();
-      // Малюємо кулі
-      ctx.fillStyle = "#FF5722";
-      bullets.forEach(function(bullet) {
+      // Малюємо позицію гравця
+      if (playerPosition) {
+        ctx.fillStyle = "#FFEB3B";
         ctx.beginPath();
-        ctx.arc(bullet.x, bullet.y, 4, 0, 2 * Math.PI);
+        ctx.arc(playerPosition.x * cellSize + cellSize/2, playerPosition.y * cellSize + cellSize/2, cellSize/3, 0, 2 * Math.PI);
         ctx.fill();
-      });
-    }
-    document.addEventListener("keydown", function(e) {
-      if(e.keyCode === 37) { // стрілка вліво – обертання
-        tank.angle -= 0.1;
-      } else if(e.keyCode === 39) { // стрілка вправо – обертання
-        tank.angle += 0.1;
-      } else if(e.keyCode === 38) { // вперед
-        tank.speed = 4;
-      } else if(e.keyCode === 40) { // назад
-        tank.speed = -2;
-      } else if(e.keyCode === 32) { // пробіл – стрільба
-        bullets.push({ x: tank.x, y: tank.y, angle: tank.angle, speed: 6 });
       }
-    });
-    document.addEventListener("keyup", function(e) {
-      if(e.keyCode === 38 || e.keyCode === 40) {
-        tank.speed = 0;
-      }
-    });
-    function endTankGame() {
-      clearInterval(tankGameInterval);
-      alert("Гру завершено! Ваш рахунок: " + tankScore);
-      document.getElementById("startMiniGameBtn").style.display = "inline-block";
     }
-    document.getElementById("startMiniGameBtn").addEventListener("click", initTankGame);
 
-    /***** Міні-гра: Кнопка для запуску *****/
-    // Кнопка для запуску міні-гри (розташована у верхній частині) показується, якщо користувач забронював.
+    function showMemoryMazeRoute() {
+      memoryMazePhase = "demo";
+      drawMemoryMaze();
+      setTimeout(startMemoryMazeReplication, demoDuration);
+    }
+
+    function startMemoryMazeGame() {
+      generateMemoryMazeRoute();
+      memoryMazePhase = "demo";
+      currentRouteStep = 0;
+      playerPosition = { x: memoryMazeRoute[0].x, y: memoryMazeRoute[0].y };
+      showMemoryMazeRoute();
+    }
+
+    function startMemoryMazeReplication() {
+      memoryMazePhase = "replication";
+      drawMemoryMaze();
+    }
+
+    // Обробка клавіш для реплікації маршруту
+    document.addEventListener("keydown", function(e) {
+      if (memoryMazePhase === "replication") {
+        var newX = playerPosition.x;
+        var newY = playerPosition.y;
+        if (e.keyCode === 37) { newX--; }
+        else if (e.keyCode === 38) { newY--; }
+        else if (e.keyCode === 39) { newX++; }
+        else if (e.keyCode === 40) { newY++; }
+        if (newX < 0 || newX >= gridSize || newY < 0 || newY >= gridSize) return;
+        playerPosition = { x: newX, y: newY };
+        drawMemoryMaze();
+        if (currentRouteStep < memoryMazeRoute.length - 1) {
+          var expected = memoryMazeRoute[currentRouteStep + 1];
+          if (playerPosition.x === expected.x && playerPosition.y === expected.y) {
+            currentRouteStep++;
+            if (currentRouteStep === memoryMazeRoute.length - 1) {
+              alert("Вітаємо! Ви повторили маршрут рівня " + memoryMazeLevel + "!");
+              memoryMazeLevel++;
+              setTimeout(startMemoryMazeGame, 1000);
+            }
+          } else {
+            alert("Помилка! Ви не повторили маршрут. Гру завершено. Ваш рівень: " + memoryMazeLevel);
+            setTimeout(startMemoryMazeGame, 1000);
+          }
+        }
+      }
+    });
+
+    // Обробка кліків для реплікації маршруту (для ПК)
+    canvas.addEventListener("click", function(e) {
+      if (memoryMazePhase === "replication") {
+        var rect = canvas.getBoundingClientRect();
+        var x = e.clientX - rect.left;
+        var y = e.clientY - rect.top;
+        var cellX = Math.floor(x / cellSize);
+        var cellY = Math.floor(y / cellSize);
+        if (Math.abs(cellX - playerPosition.x) + Math.abs(cellY - playerPosition.y) === 1) {
+          playerPosition = { x: cellX, y: cellY };
+          drawMemoryMaze();
+          if (currentRouteStep < memoryMazeRoute.length - 1) {
+            var expected = memoryMazeRoute[currentRouteStep + 1];
+            if (playerPosition.x === expected.x && playerPosition.y === expected.y) {
+              currentRouteStep++;
+              if (currentRouteStep === memoryMazeRoute.length - 1) {
+                alert("Вітаємо! Ви повторили маршрут рівня " + memoryMazeLevel + "!");
+                memoryMazeLevel++;
+                setTimeout(startMemoryMazeGame, 1000);
+              }
+            } else {
+              alert("Помилка! Ви не повторили маршрут. Гру завершено. Ваш рівень: " + memoryMazeLevel);
+              setTimeout(startMemoryMazeGame, 1000);
+            }
+          }
+        }
+      }
+    });
+
+    /***** Міні-гра: Кнопка для запуску Memory Maze *****/
     document.getElementById("miniGameBtn").addEventListener("click", function() {
       document.getElementById("minigameArea").style.display = "block";
+      startMemoryMazeGame();
     });
     function updateMiniGameButton() {
       var currentUser = localStorage.getItem("userName");
       var miniGameButtonContainer = document.getElementById("miniGameButtonContainer");
-      if (currentUser && isUserInQueue(currentUser)) {
+      if (currentUser && currentReservations.some(function(res) { return res.normalizedName === currentUser; })) {
         miniGameButtonContainer.style.display = "block";
       } else {
         miniGameButtonContainer.style.display = "none";
