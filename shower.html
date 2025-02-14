@@ -225,7 +225,7 @@
       color: #d32f2f;
       font-size: 0.9em;
     }
-    /* Міні-гра: Tanks (Pac-Man замінено на танчики) */
+    /* Міні-гра: Tanks (гра "Танчики") */
     .minigame {
       margin-top: 30px;
       background: #e9f5ff;
@@ -325,7 +325,7 @@
       <div id="chatWarning" style="display:none;">Ви не забронювали!</div>
     </div>
 
-    <!-- Міні-гра: Tanks (гра на canvas) -->
+    <!-- Міні-гра: Tanks (Танчики) -->
     <div class="minigame" id="minigameArea" style="display:none;">
       <h3>Міні-гра: Танчики</h3>
       <canvas id="gameCanvas" width="300" height="300"></canvas>
@@ -437,13 +437,13 @@
       } else {
         currentReservations.forEach(function(res, index) {
           var li = document.createElement("li");
-          // Форматуємо час (HH:MM)
           var d = new Date(res.scheduledStart);
-          var hh = d.getHours();
-          var mm = d.getMinutes();
-          hh = (hh < 10) ? "0" + hh : hh;
-          mm = (mm < 10) ? "0" + mm : mm;
-          li.textContent = (index + 1) + ". " + res.name + " (" + res.reservedTime + " хв, " + hh + ":" + mm + ")";
+          var dayStr = (d.getDate() < 10 ? "0" : "") + d.getDate();
+          var monthStr = ((d.getMonth() + 1) < 10 ? "0" : "") + (d.getMonth() + 1);
+          var hh = (d.getHours() < 10 ? "0" : "") + d.getHours();
+          var mm = (d.getMinutes() < 10 ? "0" : "") + d.getMinutes();
+          var formattedTime = "(" + dayStr + "." + monthStr + "/" + hh + ":" + mm + ")";
+          li.textContent = (index + 1) + ". " + formattedTime + " - " + res.name;
           queueList.appendChild(li);
         });
       }
@@ -479,8 +479,7 @@
         document.getElementById("confirmContainer").innerHTML = "";
       }
     }
-
-    // Щосекундне оновлення інформації про бронювання (для реального часу)
+    // Оновлення інформації про бронювання в реальному часі
     setInterval(updateCurrentReservation, 1000);
 
     function confirmReservation() {
@@ -619,11 +618,8 @@
       });
     }
 
-    /***** Міні-гра: Tanks (замість Pac-Man) *****/
-    // Реалізація дуже спрощеної гри "Танчики" на canvas.
-    // Гравець керує танком (трикутник), може обертатись і рухатись вперед.
-    // Клавіші: стрілки для керування, пробіл для стрільби.
-    // Для спрощення, у цій версії вороги не з'являються, лише обчислюється рахунок за рух.
+    /***** Міні-гра: Tanks (Танчики) *****/
+    // Реалізація простої гри "Танчики" на canvas.
     var canvas = document.getElementById("gameCanvas");
     var ctx = canvas.getContext("2d");
     var tank = { x: canvas.width / 2, y: canvas.height - 40, angle: -Math.PI/2, speed: 0 };
@@ -651,7 +647,6 @@
       for(var i = 0; i < bullets.length; i++){
         bullets[i].x += bullets[i].speed * Math.cos(bullets[i].angle);
         bullets[i].y += bullets[i].speed * Math.sin(bullets[i].angle);
-        // Видалення куль за межами canvas
         if(bullets[i].x < 0 || bullets[i].x > canvas.width || bullets[i].y < 0 || bullets[i].y > canvas.height){
           bullets.splice(i,1);
           i--;
@@ -685,15 +680,15 @@
       });
     }
     document.addEventListener("keydown", function(e) {
-      if(e.keyCode === 37) { // ліворуч - обертання
+      if(e.keyCode === 37) { // стрілка вліво – обертання
         tank.angle -= 0.1;
-      } else if(e.keyCode === 39) { // праворуч - обертання
+      } else if(e.keyCode === 39) { // стрілка вправо – обертання
         tank.angle += 0.1;
       } else if(e.keyCode === 38) { // вперед
         tank.speed = 4;
       } else if(e.keyCode === 40) { // назад
         tank.speed = -2;
-      } else if(e.keyCode === 32) { // пробіл - стрільба
+      } else if(e.keyCode === 32) { // пробіл – стрільба
         bullets.push({ x: tank.x, y: tank.y, angle: tank.angle, speed: 6 });
       }
     });
@@ -708,7 +703,6 @@
       document.getElementById("startMiniGameBtn").style.display = "inline-block";
     }
     document.getElementById("startMiniGameBtn").addEventListener("click", initTankGame);
-
   </script>
 </body>
 </html>
