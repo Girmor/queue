@@ -20,26 +20,29 @@
       margin: 20px auto;
       padding: 20px;
     }
-    /* Кнопка для міні-гри – завжди показана */
-    #miniGameButtonContainer {
-      text-align: center;
+    /* Контейнер для заголовку і кнопки міні-гри */
+    .header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       margin-bottom: 20px;
-      display: block;
+    }
+    /* Кнопка для міні-гри – завжди показана, стилізована як кнопка */
+    #miniGameButtonContainer {
+      /* розташована праворуч */
     }
     #miniGameBtn {
-      background: transparent;
+      background: #007bff;
+      color: #fff;
       border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
       cursor: pointer;
-      outline: none;
+      font-size: 1em;
+      transition: background 0.3s;
     }
-    #miniGameBtn img {
-      vertical-align: middle;
-    }
-    #miniGameBtn span {
-      font-size: 1.2em;
-      vertical-align: middle;
-      color: #007bff;
-      margin-left: 5px;
+    #miniGameBtn:hover {
+      background: #0056b3;
     }
     /* Форма бронювання */
     .booking-form {
@@ -67,7 +70,6 @@
     .date-time-group input,
     .date-time-group select {
       flex: 1;
-      margin: 0;
     }
     .booking-form button {
       background: #007bff;
@@ -290,6 +292,33 @@
       font-size: 1em;
       color: #ffeb3b;
     }
+    /* Блок для пісень: кнопки для відтворення та голосування */
+    .song-section {
+      text-align: center;
+      margin: 20px 0;
+    }
+    .song-section button {
+      margin: 5px;
+      padding: 8px 12px;
+      background: #1e1e1e;
+      color: #f0f0f0;
+      border: 1px solid #444;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    .song-section button:hover {
+      background: #333;
+    }
+    .vote-section {
+      text-align: center;
+      margin: 10px 0;
+    }
+    .vote-section span {
+      margin: 0 10px;
+      font-size: 1.1em;
+      color: #ffeb3b;
+    }
     /* Кнопка "Оновити" для водяного ефекту */
     #refreshBtn {
       position: fixed;
@@ -322,23 +351,25 @@
       animation: waterRipple 1s ease-out;
       z-index: 999;
     }
-    /* Сховані елементи для відтворення пісень */
-    .hidden-players {
+    /* Сховані елементи для пісень (HTML5 audio) */
+    .hidden-audio {
       display: none;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <!-- Кнопка для міні-гри (завжди активна) -->
-    <div id="miniGameButtonContainer">
-      <button id="miniGameBtn">Міні-гра</button>
+    <!-- Заголовок і кнопка міні-гри (Shower Dash) праворуч -->
+    <div class="header-row">
+      <h1>Електронна черга в душ</h1>
+      <div id="miniGameButtonContainer">
+        <button id="miniGameBtn" onclick="openGameWindow()">Міні-гра</button>
+      </div>
     </div>
 
     <!-- Форма бронювання -->
     <div class="booking-form">
       <div id="vipBanner"></div>
-      <h1>Електронна черга в душ</h1>
       <input type="text" id="userName" placeholder="Введіть своє ім'я">
       <div class="date-time-group">
         <input type="date" id="reservationDate">
@@ -392,7 +423,7 @@
       <div id="chatWarning" style="display:none;">Ви не забронювали!</div>
     </div>
 
-    <!-- Віртуальна душова кімната з анімацією та опитуванням -->
+    <!-- Віртуальна душова кімната -->
     <div class="virtual-shower-room" id="virtualShowerRoom">
       <h2>Віртуальна душова кімната</h2>
       <div class="avatar-container" id="avatarContainer">
@@ -402,9 +433,23 @@
       </div>
       <div class="poll-section" id="pollSection">
         <h3>Яка пісня ідеально підходить для душу?</h3>
-        <button onclick="vote('song1')">Пісня 1</button>
-        <button onclick="vote('song2')">Пісня 2</button>
-        <button onclick="vote('song3')">Пісня 3</button>
+        <!-- Кнопки для відтворення пісень -->
+        <div class="song-section">
+          <button onclick="toggleSong('audio1')">Пісня 1</button>
+          <button onclick="toggleSong('audio2')">Пісня 2</button>
+          <button onclick="toggleSong('audio3')">Пісня 3</button>
+        </div>
+        <!-- Кнопки голосування та відображення статистики -->
+        <div class="vote-section">
+          <button onclick="voteSong('song1')">Голосувати Пісня 1</button>
+          <button onclick="voteSong('song2')">Голосувати Пісня 2</button>
+          <button onclick="voteSong('song3')">Голосувати Пісня 3</button>
+          <div id="voteStats">
+            <span id="vote_song1">Пісня 1: 0</span>
+            <span id="vote_song2">Пісня 2: 0</span>
+            <span id="vote_song3">Пісня 3: 0</span>
+          </div>
+        </div>
         <div id="pollResults"></div>
       </div>
     </div>
@@ -413,59 +458,16 @@
   <!-- Кнопка "Оновити" для водяного ефекту -->
   <button id="refreshBtn" onclick="showWaterAnimation()">Оновити</button>
 
-  <!-- Сховані елементи для пісень (YouTube IFrame API) -->
-  <div class="hidden-players">
-    <div id="song1"></div>
-    <div id="song2"></div>
-    <div id="song3"></div>
+  <!-- Сховані HTML5 аудіоелементи для пісень -->
+  <div class="hidden-audio">
+    <audio id="audio1" src="path/to/song1.mp3"></audio>
+    <audio id="audio2" src="path/to/song2.mp3"></audio>
+    <audio id="audio3" src="path/to/song3.mp3"></audio>
   </div>
 
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
-
-  <!-- Завантаження YouTube IFrame API -->
-  <script>
-    var tag = document.createElement('script');
-    tag.src = "https://www.youtube.com/iframe_api";
-    var firstScriptTag = document.getElementsByTagName('script')[0];
-    firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-
-    var player1, player2, player3;
-    function onYouTubeIframeAPIReady() {
-      player1 = new YT.Player('song1', {
-        height: '0',
-        width: '0',
-        videoId: 'Ob0UE3mdYvE',
-        playerVars: { 'autoplay': 0, 'controls': 0 }
-      });
-      player2 = new YT.Player('song2', {
-        height: '0',
-        width: '0',
-        videoId: 'Y8nCOeV3kKc',
-        playerVars: { 'autoplay': 0, 'controls': 0 }
-      });
-      player3 = new YT.Player('song3', {
-        height: '0',
-        width: '0',
-        videoId: 'JsGd5I0UxhM',
-        playerVars: { 'autoplay': 0, 'controls': 0 }
-      });
-    }
-
-    function vote(option) {
-      var pollResults = document.getElementById("pollResults");
-      pollResults.innerText = "Ви обрали: " + option;
-      if (option === "song1") {
-        player1.playVideo();
-      } else if (option === "song2") {
-        player2.playVideo();
-      } else if (option === "song3") {
-        player3.playVideo();
-      }
-    }
-  </script>
-
   <script>
     /***** Firebase Configuration *****/
     var firebaseConfig = {
@@ -487,8 +489,7 @@
     var currentReservations = []; // бронювання з дозволених дат
     var currentReservation = null; // бронювання для сьогодні
     var prevActiveBooking = null;  // для фіксації активного бронювання
-    var miniGameDuration = 33; // секунд (не використовується)
-    
+
     /***** Allowed Dates: сьогодні, завтра, післязавтра *****/
     function getAllowedDates() {
       var allowed = [];
@@ -503,15 +504,15 @@
       return allowed;
     }
 
-    /***** Автоматичне встановлення дати та часу *****/
+    /***** Автоматичне встановлення дати та часу в полях бронювання *****/
     window.addEventListener("load", function(){
-      var today = new Date();
-      var yyyy = today.getFullYear();
-      var mm = ("0" + (today.getMonth()+1)).slice(-2);
-      var dd = ("0" + today.getDate()).slice(-2);
+      var now = new Date();
+      var yyyy = now.getFullYear();
+      var mm = ("0" + (now.getMonth()+1)).slice(-2);
+      var dd = ("0" + now.getDate()).slice(-2);
       document.getElementById("reservationDate").value = yyyy + "-" + mm + "-" + dd;
-      var hh = ("0" + today.getHours()).slice(-2);
-      var min = ("0" + today.getMinutes()).slice(-2);
+      var hh = ("0" + now.getHours()).slice(-2);
+      var min = ("0" + now.getMinutes()).slice(-2);
       document.getElementById("reservationTime").value = hh + ":" + min;
     });
 
@@ -817,14 +818,35 @@
     function vote(option) {
       var pollResults = document.getElementById("pollResults");
       pollResults.innerText = "Ви обрали: " + option;
-      // Відтворення пісні через YouTube IFrame API (див. нижче)
-      if (option === "song1") {
-         player1.playVideo();
-      } else if (option === "song2") {
-         player2.playVideo();
-      } else if (option === "song3") {
-         player3.playVideo();
+      // Відтворення пісні: викликаємо toggleSong, яка перемикає стан відтворення
+      toggleSong("audio_" + option);
+    }
+
+    /***** Функція для відтворення пісень (HTML5 Audio) з можливістю зупинки при повторному натисканні *****/
+    function toggleSong(audioId) {
+      var audio = document.getElementById(audioId);
+      if (audio.paused) {
+         audio.play();
+      } else {
+         audio.pause();
+         audio.currentTime = 0;
       }
+    }
+
+    /***** Голосування за пісню та статистика *****/
+    var voteCounts = {
+      song1: 0,
+      song2: 0,
+      song3: 0
+    };
+    function voteSong(songId) {
+      voteCounts[songId]++;
+      updateVoteStats();
+    }
+    function updateVoteStats() {
+      document.getElementById("vote_song1").innerText = "Пісня 1: " + voteCounts.song1;
+      document.getElementById("vote_song2").innerText = "Пісня 2: " + voteCounts.song2;
+      document.getElementById("vote_song3").innerText = "Пісня 3: " + voteCounts.song3;
     }
 
     /***** Кнопка "Оновити" для водяного ефекту *****/
@@ -836,34 +858,13 @@
          document.body.removeChild(anim);
       }, 1000);
     }
-
-    /***** YouTube IFrame API для відтворення пісень *****/
-    var tag = document.createElement('script');
-    tag.src = "https://www.youtube.com/iframe_api";
-    var firstScriptTag = document.getElementsByTagName('script')[0];
-    firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-
-    var player1, player2, player3;
-    function onYouTubeIframeAPIReady() {
-      player1 = new YT.Player('song1', {
-        height: '0',
-        width: '0',
-        videoId: 'Ob0UE3mdYvE',
-        playerVars: { 'autoplay': 0, 'controls': 0 }
-      });
-      player2 = new YT.Player('song2', {
-        height: '0',
-        width: '0',
-        videoId: 'Y8nCOeV3kKc',
-        playerVars: { 'autoplay': 0, 'controls': 0 }
-      });
-      player3 = new YT.Player('song3', {
-        height: '0',
-        width: '0',
-        videoId: 'JsGd5I0UxhM',
-        playerVars: { 'autoplay': 0, 'controls': 0 }
-      });
-    }
   </script>
+
+  <!-- HTML5 аудіоелементи для пісень (замість YouTube API) -->
+  <div class="hidden-audio">
+    <audio id="audio_song1" src="path/to/song1.mp3"></audio>
+    <audio id="audio_song2" src="path/to/song2.mp3"></audio>
+    <audio id="audio_song3" src="path/to/song3.mp3"></audio>
+  </div>
 </body>
 </html>
