@@ -5,11 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Shower Dash</title>
   <style>
+    /* Загальні стилі */
     body {
       margin: 0;
-      background: #eef2f3;
+      background: linear-gradient(135deg, #74ebd5, #ACB6E5);
       font-family: 'Roboto', sans-serif;
       overflow: hidden;
+      color: #333;
+      position: relative;
     }
     #gameCanvas {
       background: #fff;
@@ -17,12 +20,7 @@
       margin: 20px auto;
       border: 2px solid #007bff;
       border-radius: 8px;
-    }
-    #score {
-      text-align: center;
-      font-size: 1.5em;
-      margin-top: 10px;
-      color: #333;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     }
     #backButton {
       position: absolute;
@@ -35,32 +33,238 @@
       border-radius: 4px;
       cursor: pointer;
       font-size: 1em;
+      z-index: 1100;
     }
     #backButton:hover {
       background: #0056b3;
+    }
+    /* Інформаційна панель гри */
+    #gameInfo {
+      text-align: center;
+      margin: 10px auto;
+      font-size: 1.2em;
+    }
+    #gameInfo div {
+      margin: 5px 0;
+    }
+    /* Таблиця лідерів */
+    #leaderboardContainer {
+      width: 90%;
+      max-width: 500px;
+      margin: 20px auto;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      padding: 15px;
+    }
+    #leaderboardContainer h2 {
+      text-align: center;
+      margin-top: 0;
+    }
+    #leaderboardTable {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    #leaderboardTable th, #leaderboardTable td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: center;
+    }
+    #leaderboardTable th {
+      background: #007bff;
+      color: #fff;
+    }
+    /* Кнопка "Почати заново" */
+    #playAgain {
+      display: none;
+      margin: 20px auto;
+      padding: 10px 20px;
+      background: #28a745;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 1em;
+      width: 150px;
+    }
+    #playAgain:hover {
+      background: #218838;
+    }
+    /* Стартовий екран */
+    #startScreen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.85);
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 1200;
+    }
+    #startScreen button {
+      padding: 15px 30px;
+      font-size: 1.2em;
+      background: #007bff;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    #startScreen button:hover {
+      background: #0056b3;
+    }
+    /* Game Over оверлей */
+    #gameOverOverlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.8);
+      color: #fff;
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 1300;
+    }
+    #gameOverOverlay h1 {
+      font-size: 3em;
+      margin-bottom: 20px;
+    }
+    #gameOverOverlay button {
+      padding: 15px 30px;
+      font-size: 1.2em;
+      background: #28a745;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    #gameOverOverlay button:hover {
+      background: #218838;
+    }
+    /* Мобільні елементи управління */
+    #mobileControls {
+      display: none;
+    }
+    @media (max-width: 600px) {
+      #gameCanvas {
+        width: 100%;
+        height: auto;
+      }
+      #mobileControls {
+        display: flex;
+        justify-content: space-around;
+        position: fixed;
+        bottom: 20px;
+        left: 0;
+        right: 0;
+        z-index: 1100;
+      }
+      #mobileControls button {
+        padding: 10px 15px;
+        font-size: 1em;
+        background: #007bff;
+        color: #fff;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      #mobileControls button:hover {
+        background: #0056b3;
+      }
     }
   </style>
 </head>
 <body>
   <button id="backButton">Назад</button>
   <canvas id="gameCanvas" width="400" height="600"></canvas>
-  <div id="score">Score: 0</div>
-
+  <div id="score" style="text-align: center; font-size: 1.5em; margin-top: 10px;">Score: 0</div>
+  
+  <!-- Інформаційна панель -->
+  <div id="gameInfo">
+    <div id="timer">Time: 60</div>
+    <div id="level">Level: 1</div>
+    <div id="missed">Misses: 0</div>
+  </div>
+  
+  <!-- Таблиця лідерів -->
+  <div id="leaderboardContainer">
+    <h2>Leaderboard</h2>
+    <table id="leaderboardTable">
+      <thead>
+        <tr>
+          <th>Rank</th>
+          <th>Score</th>
+          <th>Date</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+  
+  <!-- Game Over оверлей -->
+  <div id="gameOverOverlay">
+    <h1>Game Over</h1>
+    <button id="playAgain">Почати заново</button>
+  </div>
+  
+  <!-- Мобільні елементи управління -->
+  <div id="mobileControls">
+    <button id="btnUp">↑</button>
+    <button id="btnLeft">←</button>
+    <button id="btnDown">↓</button>
+    <button id="btnRight">→</button>
+  </div>
+  
+  <!-- Стартовий екран -->
+  <div id="startScreen">
+    <h1>Shower Dash</h1>
+    <button id="startGame">Start Game</button>
+  </div>
+  
   <script>
-    // Shower Dash Game
+    // Отримання елементів DOM
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
     const scoreDisplay = document.getElementById("score");
+    const timerDisplay = document.getElementById("timer");
+    const levelDisplay = document.getElementById("level");
+    const missedDisplay = document.getElementById("missed");
     const backButton = document.getElementById("backButton");
-
+    const playAgainButton = document.getElementById("playAgain");
+    const startScreen = document.getElementById("startScreen");
+    const gameOverOverlay = document.getElementById("gameOverOverlay");
+    
+    // Мобільні кнопки управління
+    const btnUp = document.getElementById("btnUp");
+    const btnDown = document.getElementById("btnDown");
+    const btnLeft = document.getElementById("btnLeft");
+    const btnRight = document.getElementById("btnRight");
+    
     backButton.addEventListener("click", function() {
       window.close();
     });
-
+    playAgainButton.addEventListener("click", function(){
+      window.location.reload();
+    });
+    
+    // Глобальні змінні гри
     let score = 0;
     let gameOver = false;
-
-    // Персонаж: простий прямокутник, який рухається горизонтально
+    let gameEnded = false;
+    let timeLeft = 60;       // 60 секунд
+    let missedBonuses = 0;   // пропущені бонуси
+    let level = 1;           // рівень гри
+    let timerInterval;
+    let animationFrameId;
+    let gameStarted = false;
+    
+    // Персонаж
     let player = {
       x: canvas.width / 2 - 15,
       y: canvas.height - 60,
@@ -70,61 +274,71 @@
       dx: 0,
       dy: 0
     };
-
+    
     // Масиви для бонусів і перешкод
     let bonuses = [];
     let obstacles = [];
-
-    // Налаштування інтервалів для появи бонусів та перешкод (в мілісекундах)
+    
+    // Базові інтервали (мс)
     const bonusSpawnInterval = 1500;
     const obstacleSpawnInterval = 2500;
-
+    
+    // Функції малювання
     function drawPlayer() {
-      ctx.fillStyle = "#00BCD4"; // персонаж – світло-блакитний
+      ctx.fillStyle = "#00BCD4";
       ctx.fillRect(player.x, player.y, player.width, player.height);
     }
-
+    
     function drawBonuses() {
       bonuses.forEach(bonus => {
-        // Краплі води – синьо-блакитний колір, бульбашки – світло-білий
         ctx.fillStyle = bonus.type === "water" ? "#03A9F4" : "#E0F7FA";
         ctx.beginPath();
         ctx.arc(bonus.x, bonus.y, bonus.radius, 0, Math.PI * 2);
         ctx.fill();
       });
     }
-
+    
     function drawObstacles() {
       obstacles.forEach(obs => {
-        ctx.fillStyle = "#FF5722"; // перешкоди – помаранчеві
+        ctx.fillStyle = "#FF5722";
         ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
       });
     }
-
+    
+    // Рух персонажа
     function movePlayer() {
       player.x += player.dx;
       player.y += player.dy;
-      // Обмеження по межах екрану
       if (player.x < 0) player.x = 0;
       if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
       if (player.y < 0) player.y = 0;
       if (player.y + player.height > canvas.height) player.y = canvas.height - player.height;
     }
-
+    
+    // Оновлення бонусів з лічильником пропусків
     function updateBonuses() {
-      bonuses.forEach(bonus => {
-        bonus.y += bonus.speed;
-      });
-      bonuses = bonuses.filter(bonus => bonus.y - bonus.radius < canvas.height);
+      for (let i = 0; i < bonuses.length; i++) {
+        bonuses[i].y += bonuses[i].speed;
+        if (bonuses[i].y - bonuses[i].radius >= canvas.height) {
+          missedBonuses++;
+          updateMissedDisplay();
+          bonuses.splice(i, 1);
+          i--;
+          if (missedBonuses >= 4) {
+            gameOver = true;
+          }
+        }
+      }
     }
-
+    
     function updateObstacles() {
       obstacles.forEach(obs => {
         obs.y += obs.speed;
       });
       obstacles = obstacles.filter(obs => obs.y < canvas.height);
     }
-
+    
+    // Перевірка зіткнень
     function detectCollisionRectCircle(rect, circle) {
       let distX = Math.abs(circle.x - rect.x - rect.width / 2);
       let distY = Math.abs(circle.y - rect.y - rect.height / 2);
@@ -136,42 +350,46 @@
       let dy = distY - rect.height / 2;
       return (dx * dx + dy * dy <= (circle.radius * circle.radius));
     }
-
+    
     function detectRectCollision(rect1, rect2) {
       return rect1.x < rect2.x + rect2.width &&
              rect1.x + rect1.width > rect2.x &&
              rect1.y < rect2.y + rect2.height &&
              rect1.y + rect1.height > rect2.y;
     }
-
+    
     function checkCollisions() {
-      // Перевірка зіткнень з бонусами
+      // Перевірка бонусів
       bonuses.forEach((bonus, index) => {
         if (detectCollisionRectCircle(player, bonus)) {
           score += 10;
           bonuses.splice(index, 1);
         }
       });
-      // Перевірка зіткнень з перешкодами
+      // Перевірка перешкод
       obstacles.forEach(obs => {
         if (detectRectCollision(player, obs)) {
           gameOver = true;
         }
       });
     }
-
+    
     function updateScore() {
       scoreDisplay.innerText = "Score: " + score;
     }
-
+    
+    function updateMissedDisplay() {
+      missedDisplay.innerText = "Misses: " + missedBonuses;
+    }
+    
     function clearCanvas() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
-
+    
+    // Головний ігровий цикл
     function gameLoop() {
       if (gameOver) {
-        alert("Game Over! Your score: " + score);
-        window.location.reload();
+        endGame();
         return;
       }
       clearCanvas();
@@ -183,34 +401,90 @@
       updateObstacles();
       checkCollisions();
       updateScore();
-      requestAnimationFrame(gameLoop);
+      animationFrameId = requestAnimationFrame(gameLoop);
     }
-
-    // Створення бонусів
+    
+    // Створення бонусів із врахуванням рівня
     setInterval(function() {
+      if (!gameStarted) return;
       let bonus = {
         x: Math.random() * canvas.width,
         y: -10,
         radius: 8,
-        speed: 3,
+        speed: 3 + (level - 1),
         type: Math.random() < 0.5 ? "water" : "bubble"
       };
       bonuses.push(bonus);
     }, bonusSpawnInterval);
-
-    // Створення перешкод
+    
+    // Створення перешкод із врахуванням рівня
     setInterval(function() {
+      if (!gameStarted) return;
       let obstacle = {
         x: Math.random() * (canvas.width - 30),
         y: -30,
         width: 30,
         height: 30,
-        speed: 4
+        speed: 4 + (level - 1)
       };
       obstacles.push(obstacle);
     }, obstacleSpawnInterval);
-
-    // Обробка клавіш – для управління персонажем (стрілки)
+    
+    // Таймер гри та оновлення рівня
+    function startTimer() {
+      timerInterval = setInterval(function(){
+        timeLeft--;
+        timerDisplay.innerText = "Time: " + timeLeft;
+        level = Math.floor((60 - timeLeft) / 15) + 1;
+        levelDisplay.innerText = "Level: " + level;
+        if(timeLeft <= 0){
+          gameOver = true;
+        }
+      }, 1000);
+    }
+    
+    // Логіка завершення гри
+    function endGame() {
+      if (gameEnded) return;
+      gameEnded = true;
+      clearInterval(timerInterval);
+      cancelAnimationFrame(animationFrameId);
+      saveScore(score);
+      showLeaderboard();
+      console.log("Game over triggered"); // Для дебагу
+      // Задаємо display як "flex" для оверлею та робимо кнопку видимою
+      gameOverOverlay.style.display = "flex";
+      playAgainButton.style.display = "block";
+    }
+    
+    function saveScore(score) {
+      let leaderboard = JSON.parse(localStorage.getItem("leaderboard")) || [];
+      leaderboard.push({ score: score, date: new Date().toLocaleString() });
+      leaderboard.sort((a, b) => b.score - a.score);
+      leaderboard = leaderboard.slice(0, 10);
+      localStorage.setItem("leaderboard", JSON.stringify(leaderboard));
+    }
+    
+    function showLeaderboard() {
+      let leaderboard = JSON.parse(localStorage.getItem("leaderboard")) || [];
+      let tbody = document.querySelector("#leaderboardTable tbody");
+      tbody.innerHTML = "";
+      leaderboard.forEach((entry, index) => {
+        let tr = document.createElement("tr");
+        let rankTd = document.createElement("td");
+        rankTd.innerText = index + 1;
+        let scoreTd = document.createElement("td");
+        scoreTd.innerText = entry.score;
+        let dateTd = document.createElement("td");
+        dateTd.innerText = entry.date;
+        tr.appendChild(rankTd);
+        tr.appendChild(scoreTd);
+        tr.appendChild(dateTd);
+        tbody.appendChild(tr);
+      });
+    }
+    
+    // Клавіатурне управління
     document.addEventListener("keydown", function(e) {
       if (e.key === "ArrowLeft") {
         player.dx = -player.speed;
@@ -222,7 +496,7 @@
         player.dy = player.speed;
       }
     });
-
+    
     document.addEventListener("keyup", function(e) {
       if (["ArrowLeft", "ArrowRight"].includes(e.key)) {
         player.dx = 0;
@@ -231,9 +505,32 @@
         player.dy = 0;
       }
     });
-
-    // Запуск ігрового циклу
-    gameLoop();
+    
+    // Мобільне управління (події на дотик)
+    function addMobileControlListeners() {
+      btnLeft.addEventListener("touchstart", () => { player.dx = -player.speed; });
+      btnLeft.addEventListener("touchend", () => { player.dx = 0; });
+      
+      btnRight.addEventListener("touchstart", () => { player.dx = player.speed; });
+      btnRight.addEventListener("touchend", () => { player.dx = 0; });
+      
+      btnUp.addEventListener("touchstart", () => { player.dy = -player.speed; });
+      btnUp.addEventListener("touchend", () => { player.dy = 0; });
+      
+      btnDown.addEventListener("touchstart", () => { player.dy = player.speed; });
+      btnDown.addEventListener("touchend", () => { player.dy = 0; });
+    }
+    addMobileControlListeners();
+    
+    // Старт гри (запускається при натисканні кнопки "Start Game")
+    function startGame() {
+      gameStarted = true;
+      startTimer();
+      startScreen.style.display = "none";
+      gameLoop();
+    }
+    
+    document.getElementById("startGame").addEventListener("click", startGame);
   </script>
 </body>
 </html>
