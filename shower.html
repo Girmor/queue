@@ -302,6 +302,23 @@
       animation: waterRipple 1s ease-out;
       z-index: 999;
     }
+    /* Нова кнопка для міні-гри "Shower Dash" */
+    #showerDashBtn {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #ff9800;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      padding: 10px 15px;
+      cursor: pointer;
+      z-index: 1100;
+      transition: background 0.3s;
+    }
+    #showerDashBtn:hover {
+      background: #e68900;
+    }
   </style>
 </head>
 <body>
@@ -384,6 +401,8 @@
 
   <!-- Кнопка "Оновити" для водяного ефекту -->
   <button id="refreshBtn" onclick="showWaterAnimation()">Оновити</button>
+  <!-- Кнопка для відкриття міні-гри "Shower Dash" -->
+  <button id="showerDashBtn">Shower Dash</button>
 
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
@@ -434,6 +453,8 @@
       var hh = ("0" + today.getHours()).slice(-2);
       var min = ("0" + today.getMinutes()).slice(-2);
       document.getElementById("reservationTime").value = hh + ":" + min;
+      updateVIPBanner();
+      updateChatPermission();
     });
 
     /***** Функції бронювання *****/
@@ -731,8 +752,6 @@
       }
     }
 
-    /***** Кнопка міні-гри видалена - Memory Maze більше не використовується *****/
-
     /***** Віртуальна душова кімната та опитування *****/
     function vote(option) {
       var pollResults = document.getElementById("pollResults");
@@ -749,8 +768,11 @@
       }, 1000);
     }
 
-    /***** Функції для анімації водяного ефекту *****/
-    // Конфетті вже використовується для відзначення успіху в інших розділах (якщо потрібно – додайте інші анімації)
+    /***** Подія для кнопки міні-гри "Shower Dash" *****/
+    document.getElementById("showerDashBtn").addEventListener("click", function(){
+      // Відкриваємо міні-гру у новій вкладці або вікні.
+      window.open("shower-dash.html", "_blank");
+    });
   </script>
 </body>
 </html>
